@@ -1,0 +1,157 @@
+import { Link, useLocation } from "react-router-dom";
+
+export default function Sidebar() {
+  const location = useLocation();
+
+  const menuItems = [
+    { path: "/learning", label: "Danh sách Level" },
+    { path: "", label: "Tiến độ" },
+    { path: "", label: "Thành tích" }
+  ];
+
+  const isActive = (path) => {
+    if (path === "/learning") {
+      return location.pathname === "/learning";
+    }
+    return location.pathname === path;
+  };
+
+  return (
+    <aside style={{
+      width: '250px',
+      background: 'linear-gradient(180deg, #f8f9ff 0%, #ffffff 100%)',
+      borderRight: '1px solid #e2e8f0',
+      padding: '1.5rem 0',
+      height: 'calc(100vh - 80px)',
+      position: 'sticky',
+      top: '80px',
+      overflowY: 'auto'
+    }}>
+      {/* Header */}
+      <div style={{
+        padding: '0 1.5rem',
+        marginBottom: '1.5rem'
+      }}>
+        <h3 style={{
+          fontSize: '1.3rem',
+          fontWeight: '700',
+          color: '#1a202c',
+          margin: '0 0 0.5rem 0',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem'
+        }}>
+          Học tập
+        </h3>
+        <p style={{
+          fontSize: '0.85rem',
+          color: '#718096',
+          margin: 0
+        }}>
+          Bắt đầu hành trình
+        </p>
+      </div>
+
+      {/* Menu Items */}
+      <nav>
+        <ul style={{
+          listStyle: 'none',
+          padding: 0,
+          margin: 0
+        }}>
+          {menuItems.map((item, index) => (
+            <li key={`menu-${index}`} style={{ marginBottom: '0.5rem' }}>
+              <Link
+                to={item.path}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  padding: '0.875rem 1.5rem',
+                  textDecoration: 'none',
+                  fontSize: '1rem',
+                  fontWeight: '500',
+                  color: isActive(item.path) ? '#6366f1' : '#4a5568',
+                  backgroundColor: isActive(item.path) ? '#eef2ff' : 'transparent',
+                  borderLeft: isActive(item.path) ? '4px solid #6366f1' : '4px solid transparent',
+                  transition: 'all 0.2s',
+                  position: 'relative'
+                }}
+                onMouseEnter={(e) => {
+                  if (!isActive(item.path)) {
+                    e.currentTarget.style.backgroundColor = '#f7fafc';
+                    e.currentTarget.style.paddingLeft = '1.75rem';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive(item.path)) {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                    e.currentTarget.style.paddingLeft = '1.5rem';
+                  }
+                }}
+              >
+                <span style={{ fontSize: '1.3rem' }}>{item.icon}</span>
+                <span>{item.label}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </nav>
+
+      {/* Divider */}
+      <div style={{
+        height: '1px',
+        background: '#e2e8f0',
+        margin: '1.5rem 1rem'
+      }}></div>
+
+      {/* Progress Card */}
+      <div style={{
+        margin: '0 1.5rem',
+        padding: '1rem',
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        borderRadius: '12px',
+        color: 'white'
+      }}>
+        <div style={{
+          fontSize: '0.85rem',
+          opacity: '0.9',
+          marginBottom: '0.5rem'
+        }}>
+          Level hiện tại
+        </div>
+        <div style={{
+          fontSize: '2rem',
+          fontWeight: '700'
+        }}>
+          5
+        </div>
+        
+        
+        {/* Progress Bar */}
+        <div style={{
+          marginTop: '1rem',
+          background: 'rgba(255,255,255,0.3)',
+          borderRadius: '10px',
+          height: '8px',
+          overflow: 'hidden'
+        }}>
+          <div style={{
+            background: 'white',
+            width: '65%',
+            height: '100%',
+            borderRadius: '10px',
+            transition: 'width 0.3s'
+          }}></div>
+        </div>
+        <div style={{
+          fontSize: '0.75rem',
+          opacity: '0.9',
+          marginTop: '0.5rem'
+        }}>
+          65% hoàn thành
+        </div>
+      </div>
+    </aside>
+  );
+}
