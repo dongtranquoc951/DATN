@@ -1,7 +1,7 @@
 // pages/Home/Community/PlayLevel.jsx
 import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
-import { GameEngine } from "@shared/engine";
+import { EngineFactory, GameEngine, extractStats } from "@shared/engine";
 import GameGrid from "../../../components/game/GameGrid";
 
 const API_BASE_URL      = "http://localhost:5000/api";
@@ -253,6 +253,7 @@ export default function PlayLevel() {
   const [error,      setError]      = useState(null);
   const [isRunning,  setIsRunning]  = useState(false);
   const [gameState,  setGameState]  = useState(null);
+  const [stats,      setStats]      = useState({});
   const [message,    setMessage]    = useState("");
   const [isDragOver, setIsDragOver] = useState(false);
 
@@ -305,11 +306,20 @@ export default function PlayLevel() {
 
   useEffect(() => { loadMapData(); }, [mapId]);
 
-  const buildInitialState = (gd) => ({
-    player: { ...gd.player }, target: gd.target,
-    obstacles: gd.obstacles || [], collectibles: gd.collectibles || [],
-    collectedItems: [], rows: gd.rows, cols: gd.cols, moves: 0,
-  });
+  const setupEngine = (gridConfig) => {
+    const engine = EngineFactory.createEngine(gridConfig);
+    engine.setCallbacks(
+      s => {
+        setGameState(s);
+        setStats(extractStats(s, engine));
+      },
+      msg => setMessage(msg),
+    );
+    engineRef.current = engine;
+    setGameState(engine.state);
+    setStats(extractStats(engine.state, engine));
+    return engine;
+  };
 
   const loadMapData = async () => {
     try {
@@ -329,11 +339,7 @@ export default function PlayLevel() {
       setMapData(data.map);
       setCode(data.map?.initial_code || "// Viết code của bạn ở đây\n// Các lệnh: moveRight(), moveLeft(), moveUp(), moveDown()\n");
 
-      const init   = buildInitialState(gd);
-      setGameState(init);
-      const engine = new GameEngine(init);
-      engine.setCallbacks(s => setGameState(s), msg => setMessage(msg));
-      engineRef.current = engine;
+      setupEngine(gd);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -346,12 +352,8 @@ export default function PlayLevel() {
     setIsRunning(true); setMessage("🎮 Đang chạy code..."); closeModal(); setRated(false); setRatedValue(0);
     try {
       const gd   = typeof mapData.grid_data === "string" ? JSON.parse(mapData.grid_data) : mapData.grid_data;
-      const init = buildInitialState(gd);
-      setGameState(init);
       await sleep(300);
-      const engine = new GameEngine(init);
-      engine.setCallbacks(s => setGameState(s), msg => setMessage(msg));
-      engineRef.current = engine;
+      const engine = setupEngine(gd);
       const isWin = await engine.executeCode(code);
       if (isWin) {
         await submitMap(true, engine.state.moves);
@@ -393,11 +395,7 @@ export default function PlayLevel() {
     setCode(mapData?.initial_code || ""); setMessage("");
     if (mapData) {
       const gd   = typeof mapData.grid_data === "string" ? JSON.parse(mapData.grid_data) : mapData.grid_data;
-      const init = buildInitialState(gd);
-      setGameState(init);
-      const engine = new GameEngine(init);
-      engine.setCallbacks(s => setGameState(s), msg => setMessage(msg));
-      engineRef.current = engine;
+      setupEngine(gd);
     }
   };
 
@@ -497,13 +495,33 @@ export default function PlayLevel() {
           </div>
 
           {gameState && (
-            <div style={{ padding: "12px 18px", borderTop: "0.5px solid #f0f0f8", display: "flex", gap: 6 }}>
+            <div style={{ padding: "12px 18px", borderTop: "0.5px solid #f0f0f8", display: "flex", gap: 6, flexWrap: "wrap" }}>
               <span style={{ fontSize: 12, padding: "6px 12px", borderRadius: 99, background: "#EEEDFE", color: "#534ab7", fontWeight: 500 }}>
-                👟 Bước: <b>{gameState.moves || 0}</b>
+                👟 Bước: <b>{stats.moves ?? gameState.moves ?? 0}</b>
               </span>
               <span style={{ fontSize: 12, padding: "6px 12px", borderRadius: 99, background: "#FAEEDA", color: "#854f0b", fontWeight: 500 }}>
-                ⭐ Sao: <b>{gameState.collectedItems?.length || 0}/{gameState.collectibles?.length || 0}</b>
+                ⭐ Sao: <b>{stats.stars?.collected ?? gameState.collectedItems?.length ?? 0}/{stats.stars?.total ?? gameState.collectibles?.length ?? 0}</b>
               </span>
+              {stats.switches && (
+                <span style={{ fontSize: 12, padding: "6px 12px", borderRadius: 99, background: "#E1F5EE", color: "#0f6e56", fontWeight: 500 }}>
+                  🔘 Switch: <b>{stats.switches.activated}/{stats.switches.total}</b>
+                </span>
+              )}
+              {stats.shadowPosition && (
+                <span style={{ fontSize: 12, padding: "6px 12px", borderRadius: 99, background: "#EEEDFE", color: "#534ab7", fontWeight: 500 }}>
+                  👤 Shadow: <b>({stats.shadowPosition.x},{stats.shadowPosition.y})</b>
+                </span>
+              )}
+              {stats.pressurePlates && (
+                <span style={{ fontSize: 12, padding: "6px 12px", borderRadius: 99, background: "#FCEBEB", color: "#a32d2d", fontWeight: 500 }}>
+                  ⚡ Plates: <b>{stats.pressurePlates.activated}/{stats.pressurePlates.total}</b>
+                </span>
+              )}
+              {stats.triggers && (
+                <span style={{ fontSize: 12, padding: "6px 12px", borderRadius: 99, background: "#FCEBEB", color: "#a32d2d", fontWeight: 500 }}>
+                  🎯 Triggers: <b>{stats.triggers.activated}/{stats.triggers.total}</b>
+                </span>
+              )}
             </div>
           )}
 
