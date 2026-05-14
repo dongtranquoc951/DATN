@@ -28,6 +28,8 @@ const Skeleton = () => (
 
 // ── Session Card ──────────────────────────────────────────────────────────────
 function SessionCard({ session, index, onPlay }) {
+  const canPlay = session.status !== "inactive" && session.is_published !== false;
+
   return (
     <div
       style={{
@@ -82,17 +84,18 @@ function SessionCard({ session, index, onPlay }) {
       {/* Play button */}
       <div style={{ flexShrink: 0 }}>
         <button
-          onClick={() => onPlay(session.map_id)}
+          onClick={() => canPlay && onPlay(session.map_id)}
+          disabled={!canPlay}
           style={{
             padding: "5px 14px", borderRadius: 99, border: "none",
-            background: "#7f77dd", color: "white",
-            fontSize: 11, fontWeight: 500, cursor: "pointer",
+            background: canPlay ? "#7f77dd" : "#e5e7eb", color: canPlay ? "white" : "#8a8f9c",
+            fontSize: 11, fontWeight: 500, cursor: canPlay ? "pointer" : "not-allowed",
             fontFamily: "inherit", transition: "opacity .15s",
           }}
           onMouseEnter={e => { e.currentTarget.style.opacity = ".85"; }}
           onMouseLeave={e => { e.currentTarget.style.opacity = "1"; }}
         >
-          ▶ Chơi lại
+          {canPlay ? "▶ Chơi lại" : "Không còn hoạt động"}
         </button>
       </div>
     </div>
@@ -126,6 +129,8 @@ export default function CommunityHistory() {
         map_id:     h.map_id,
         map_title:  h.map_title,
         map_author: h.map_author,
+        is_published: Boolean(h.is_published),
+        status: h.status,
         played_at:  h.updated_at || h.completed_at || null,
       }));
 

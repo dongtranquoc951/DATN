@@ -129,6 +129,8 @@ export default function CategoryManager() {
   const [delTarget, setDel]     = useState(null);
   const [saving, setSaving]     = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [restoring, setRestoring] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("active");
   const [toast, setToast]       = useState(null);
 
   const showToast = (message, type = "info") => setToast({ message, type });
@@ -136,7 +138,10 @@ export default function CategoryManager() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res  = await fetch(`${API_BASE_URL}/categories`);
+      const token = localStorage.getItem("token");
+      const res  = await fetch(`${API_BASE_URL}/categories/admin/all`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       const data = await res.json();
       setList(data.categories || []);
     } catch {
@@ -177,7 +182,7 @@ export default function CategoryManager() {
       const res   = await fetch(`${API_BASE_URL}/categories/${delTarget.id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
       const data  = await res.json();
       if (!res.ok) throw new Error(data.message || "Lỗi");
-      showToast(`Đã xóa "${delTarget.name}"`, "danger");
+      showToast(`Đã ngừng hoạt động "${delTarget.name}"`, "danger");
       setDel(null);
       load();
     } catch (e) {
@@ -187,19 +192,41 @@ export default function CategoryManager() {
     }
   };
 
+  const handleRestore = async (item) => {
+    if (!item) return;
+    setRestoring(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE_URL}/categories/${item.id}/restore`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Lỗi");
+      showToast(data.message || `Đã khôi phục "${item.name}"`, "success");
+      load();
+    } catch (e) {
+      showToast(e.message, "danger");
+    } finally {
+      setRestoring(false);
+    }
+  };
+
   const filtered = list.filter(c =>
-    !search ||
-    c.name.toLowerCase().includes(search.toLowerCase()) ||
-    (c.description || "").toLowerCase().includes(search.toLowerCase())
+    (statusFilter === "all" || (c.status || "active") === statusFilter) &&
+    (!search ||
+      c.name.toLowerCase().includes(search.toLowerCase()) ||
+      (c.description || "").toLowerCase().includes(search.toLowerCase()))
   );
 
-  const withDesc    = list.filter(c => c.description?.trim()).length;
-  const withoutDesc = list.length - withDesc;
+  const activeCount = list.filter(c => (c.status || "active") === "active").length;
+  const inactiveCount = list.filter(c => c.status === "inactive").length;
+  const withDesc = list.filter(c => (c.status || "active") === "active" && c.description?.trim()).length;
 
   const stats = [
     { label: "Tổng danh mục", value: list.length,  badge: "Tất cả",     badgeColor: "bg-blue-50 text-blue-600",   icon: "bg-blue-50" },
     { label: "Có mô tả",      value: withDesc,      badge: "Đầy đủ",     badgeColor: "bg-green-50 text-green-600", icon: "bg-green-50" },
-    { label: "Chưa có mô tả", value: withoutDesc,   badge: "Cần bổ sung", badgeColor: "bg-amber-50 text-amber-600", icon: "bg-amber-50" },
+    { label: "Không hoạt động", value: inactiveCount, badge: "Khôi phục", badgeColor: "bg-amber-50 text-amber-600", icon: "bg-amber-50" },
   ];
 
   return (
@@ -247,6 +274,21 @@ export default function CategoryManager() {
             <div className="text-sm font-semibold text-gray-900">Danh sách danh mục</div>
             <div className="text-xs text-gray-400 mt-0.5">{filtered.length} / {list.length} danh mục</div>
           </div>
+          <div className="flex gap-1.5 bg-gray-50 border border-gray-200 rounded-md p-1">
+            {[
+              { key: "active", label: `Hoạt động (${activeCount})` },
+              { key: "inactive", label: `Không hoạt động (${inactiveCount})` },
+              { key: "all", label: `Tất cả (${list.length})` },
+            ].map(f => (
+              <button
+                key={f.key}
+                onClick={() => setStatusFilter(f.key)}
+                className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${statusFilter === f.key ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-800"}`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Table */}
@@ -254,8 +296,8 @@ export default function CategoryManager() {
           <table className="w-full border-collapse">
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr>
-                {["#", "Tên danh mục", "Mô tả", "Thao tác"].map((h, i) => (
-                  <th key={h} className={`px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-gray-400 ${i === 3 ? "text-right pr-5" : "text-left"} ${i === 0 ? "pl-5 w-12" : ""}`}>
+                {["#", "Tên danh mục", "Mô tả", "Trạng thái", "Thao tác"].map((h, i) => (
+                  <th key={h} className={`px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-gray-400 ${i === 4 ? "text-right pr-5" : "text-left"} ${i === 0 ? "pl-5 w-12" : ""}`}>
                     {h}
                   </th>
                 ))}
@@ -263,10 +305,10 @@ export default function CategoryManager() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={4}><Spinner /></td></tr>
+                <tr><td colSpan={5}><Spinner /></td></tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="text-center py-8 text-sm text-gray-400">
+                  <td colSpan={5} className="text-center py-8 text-sm text-gray-400">
                     {search ? "Không tìm thấy danh mục nào" : "Chưa có danh mục nào"}
                   </td>
                 </tr>
@@ -284,20 +326,37 @@ export default function CategoryManager() {
                       : <span className="text-xs text-gray-300 italic">Chưa có mô tả</span>
                     }
                   </td>
+                  <td className="px-4 py-3.5">
+                    <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${(item.status || "active") === "active" ? "bg-green-50 text-green-600" : "bg-amber-50 text-amber-600"}`}>
+                      {(item.status || "active") === "active" ? "Hoạt động" : "Không hoạt động"}
+                    </span>
+                  </td>
                   <td className="px-4 py-3.5 pr-5">
                     <div className="flex items-center gap-1.5 justify-end">
-                      <button
-                        onClick={() => setModal({ mode: "edit", data: item })}
-                        className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 cursor-pointer transition-colors"
-                      >
-                        Sửa
-                      </button>
-                      <button
-                        onClick={() => setDel(item)}
-                        className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 cursor-pointer transition-colors"
-                      >
-                        Xóa
-                      </button>
+                      {(item.status || "active") === "active" ? (
+                        <>
+                          <button
+                            onClick={() => setModal({ mode: "edit", data: item })}
+                            className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 cursor-pointer transition-colors"
+                          >
+                            Sửa
+                          </button>
+                          <button
+                            onClick={() => setDel(item)}
+                            className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 cursor-pointer transition-colors"
+                          >
+                            Ngừng
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          onClick={() => handleRestore(item)}
+                          disabled={restoring}
+                          className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium border border-green-200 bg-green-50 text-green-600 hover:bg-green-100 cursor-pointer transition-colors disabled:opacity-60"
+                        >
+                          Khôi phục
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -332,23 +391,23 @@ export default function CategoryManager() {
       <Modal
         open={!!delTarget}
         onClose={() => setDel(null)}
-        title="Xác nhận xóa danh mục"
-        subtitle="Hành động này không thể hoàn tác"
+        title="Ngừng hoạt động danh mục"
+        subtitle="Danh mục sẽ bị ẩn khỏi danh sách chọn"
         width={420}
         footer={
           <>
             <Btn variant="ghost" onClick={() => setDel(null)} disabled={deleting}>Hủy</Btn>
             <Btn variant="danger" onClick={handleDelete} disabled={deleting}>
-              {deleting ? "Đang xóa..." : "Xác nhận xóa"}
+              {deleting ? "Đang xử lý..." : "Ngừng hoạt động"}
             </Btn>
           </>
         }
       >
         {delTarget && (
           <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-            <div className="text-sm font-semibold text-red-600 mb-1.5">Xóa "{delTarget.name}"?</div>
+            <div className="text-sm font-semibold text-red-600 mb-1.5">Ngừng hoạt động "{delTarget.name}"?</div>
             <div className="text-xs text-red-800 leading-relaxed">
-              Danh mục <strong>{delTarget.name}</strong> sẽ bị xóa vĩnh viễn. Hành động này không thể hoàn tác.
+              Danh mục <strong>{delTarget.name}</strong> sẽ không còn hiện khi tạo/sửa map. Các liên kết cũ vẫn được giữ trong dữ liệu.
             </div>
           </div>
         )}

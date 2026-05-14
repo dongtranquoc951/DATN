@@ -71,10 +71,10 @@ function MapCard({ map, selected, onSelect, onEdit, onDelete }) {
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <span style={{ fontSize: 10, fontWeight: 500, padding: "2px 8px", borderRadius: 99,
-            background: map.is_published ? "#E1F5EE" : "#f0f0f8",
-            color:      map.is_published ? "#0f6e56"  : "#8888aa",
+            background: map.status === "inactive" ? "#FCEBEB" : map.is_published ? "#E1F5EE" : "#f0f0f8",
+            color:      map.status === "inactive" ? "#a32d2d" : map.is_published ? "#0f6e56"  : "#8888aa",
           }}>
-            {map.is_published ? "● Đã đăng" : "○ Chờ xét duyệt"}
+            {map.status === "inactive" ? "○ Không hoạt động" : map.is_published ? "● Đã đăng" : "○ Chờ xét duyệt"}
           </span>
           <span style={{ fontSize: 11, color: "#a0a0c0" }}>
             🎮 {map.play_count || 0} · ⭐ {map.average_rating ? Number(map.average_rating).toFixed(1) : "—"}
@@ -95,7 +95,7 @@ function MapCard({ map, selected, onSelect, onEdit, onDelete }) {
         </button>
         <button onClick={e => { e.stopPropagation(); onDelete(map); }}
           style={{ flex: 1, padding: "5px", borderRadius: 8, border: "none", background: "rgba(239,68,68,0.7)", color: "white", fontWeight: 500, fontSize: 11, cursor: "pointer", fontFamily: "inherit" }}>
-          🗑️ Xóa
+          Ngừng
         </button>
       </div>
     </div>
@@ -110,9 +110,9 @@ function DeleteModal({ map, onConfirm, onCancel, loading }) {
       onClick={onCancel}>
       <div style={{ background: "white", borderRadius: 20, padding: "28px 24px", maxWidth: 380, width: "100%", boxShadow: "0 24px 60px rgba(0,0,0,0.2)" }}
         onClick={e => e.stopPropagation()}>
-        <div style={{ fontWeight: 500, fontSize: 17, textAlign: "center", marginBottom: 8, color: "#1a1a2e" }}>Xóa bản đồ?</div>
+        <div style={{ fontWeight: 500, fontSize: 17, textAlign: "center", marginBottom: 8, color: "#1a1a2e" }}>Ngừng hoạt động bản đồ?</div>
         <div style={{ fontSize: 13, color: "#7a8099", textAlign: "center", marginBottom: 22, lineHeight: 1.6 }}>
-          Bản đồ <b>"{map.title}"</b> sẽ bị xóa vĩnh viễn cùng toàn bộ lịch sử và đánh giá.
+          Bản đồ <b>"{map.title}"</b> sẽ bị ẩn khỏi danh sách cộng đồng, nhưng lịch sử và đánh giá vẫn được giữ lại.
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <button onClick={onCancel} style={{ flex: 1, padding: 11, borderRadius: 10, border: "0.5px solid #e8eaf0", background: "#f0f0f8", color: "#534ab7", fontWeight: 500, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
@@ -120,7 +120,7 @@ function DeleteModal({ map, onConfirm, onCancel, loading }) {
           </button>
           <button onClick={onConfirm} disabled={loading}
             style={{ flex: 1, padding: 11, borderRadius: 10, border: "none", background: "#ef4444", color: "white", fontWeight: 500, fontSize: 13, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? .6 : 1, fontFamily: "inherit" }}>
-            {loading ? "Đang xóa..." : "Xóa"}
+            {loading ? "Đang xử lý..." : "Ngừng"}
           </button>
         </div>
       </div>
@@ -174,7 +174,7 @@ export default function MyMap() {
       });
       if (!res.ok) throw new Error();
       const data = await res.json();
-      setMaps(data.maps || []);
+      setMaps((data.maps || []).filter(m => m.status !== "inactive"));
     } catch {
       flash("Không thể tải bản đồ", "error");
     } finally {
@@ -193,9 +193,9 @@ export default function MyMap() {
       if (!res.ok) throw new Error();
       setMaps(prev => prev.filter(m => m.id !== deleteTarget.id));
       if (selected?.id === deleteTarget.id) setSelected(null);
-      flash(`Đã xóa "${deleteTarget.title}"`);
+      flash(`Đã ngừng hoạt động "${deleteTarget.title}"`);
     } catch {
-      flash("Xóa thất bại", "error");
+      flash("Thao tác thất bại", "error");
     } finally {
       setDeleting(false); setDelete(null);
     }

@@ -8,6 +8,8 @@ const parseGridData = (map) => ({
     : map.grid_data
 });
 
+const ACTIVE_MAP_CONDITION = `(cm.status IS NULL OR cm.status = 'active')`;
+
 // Lấy danh sách tất cả community maps
 exports.getAllMaps = async (req, res) => {
   try {
@@ -20,7 +22,7 @@ exports.getAllMaps = async (req, res) => {
         u.avatar_url as creator_avatar
       FROM community_maps cm
       JOIN users u ON cm.created_by = u.id
-      WHERE cm.is_published = TRUE
+      WHERE cm.is_published = TRUE AND ${ACTIVE_MAP_CONDITION}
     `;
     
     const params = [];
@@ -42,10 +44,10 @@ exports.getAllMaps = async (req, res) => {
     const [maps] = await db.query(query, params);
     const parsedMaps = maps.map(parseGridData);
     
-    let countQuery = 'SELECT COUNT(*) as total FROM community_maps WHERE is_published = TRUE';
+    let countQuery = `SELECT COUNT(*) as total FROM community_maps cm WHERE cm.is_published = TRUE AND ${ACTIVE_MAP_CONDITION}`;
     const countParams = [];
     if (search) {
-      countQuery += ' AND (title LIKE ? OR description LIKE ? OR map_code LIKE ?)';
+      countQuery += ' AND (cm.title LIKE ? OR cm.description LIKE ? OR cm.map_code LIKE ?)';
       const searchTerm = `%${search}%`;
       countParams.push(searchTerm, searchTerm, searchTerm);
     }
@@ -85,12 +87,17 @@ exports.getMapById = async (req, res) => {
     
     const map = parseGridData(maps[0]);
 
+    if (map.status === 'inactive') {
+      return res.status(410).json({ error: 'Map này không còn hoạt động' });
+    }
+
     // Lấy danh mục của map
     const [categories] = await db.query(`
       SELECT c.*
       FROM categories c
       JOIN community_map_categories cmc ON cmc.category_id = c.id
       WHERE cmc.map_id = ?
+        AND (c.status IS NULL OR c.status = 'active')
       ORDER BY c.name ASC
     `, [mapId]);
 
@@ -116,7 +123,7 @@ exports.getMapByCode = async (req, res) => {
         u.avatar_url as creator_avatar
       FROM community_maps cm
       JOIN users u ON cm.created_by = u.id
-      WHERE cm.map_code = ? AND cm.is_published = TRUE
+      WHERE cm.map_code = ? AND cm.is_published = TRUE AND ${ACTIVE_MAP_CONDITION}
     `, [map_code]);
     
     if (maps.length === 0) {
@@ -131,6 +138,7 @@ exports.getMapByCode = async (req, res) => {
       FROM categories c
       JOIN community_map_categories cmc ON cmc.category_id = c.id
       WHERE cmc.map_id = ?
+        AND (c.status IS NULL OR c.status = 'active')
       ORDER BY c.name ASC
     `, [map.id]);
 
@@ -148,14 +156,19 @@ exports.getMapByCode = async (req, res) => {
 // categoryIds: number[] — danh sách id danh mục muốn gán (có thể rỗng)
 const syncMapCategories = async (mapId, categoryIds = []) => {
   // Xóa toàn bộ liên kết cũ
-  await db.query('DELETE FROM community_map_categories WHERE map_id = ?', [mapId]);
+  await db.query(
+    `DELETE cmc FROM community_map_categories cmc
+     JOIN categories c ON c.id = cmc.category_id
+     WHERE cmc.map_id = ? AND (c.status IS NULL OR c.status = 'active')`,
+    [mapId]
+  );
 
   if (categoryIds.length === 0) return;
 
   // Validate: chỉ giữ các id hợp lệ (tồn tại trong bảng categories)
   const placeholders = categoryIds.map(() => '?').join(',');
   const [validCats] = await db.query(
-    `SELECT id FROM categories WHERE id IN (${placeholders})`,
+    `SELECT id FROM categories WHERE id IN (${placeholders}) AND (status IS NULL OR status = 'active')`,
     categoryIds
   );
   const validIds = validCats.map(c => c.id);
@@ -225,7 +238,7 @@ exports.updateMap = async (req, res) => {
     
     // Kiểm tra quyền
     const [maps] = await db.query(
-      'SELECT created_by FROM community_maps WHERE id = ?',
+      'SELECT created_by, status, is_published FROM community_maps WHERE id = ?',
       [mapId]
     );
     
@@ -237,9 +250,21 @@ exports.updateMap = async (req, res) => {
       return res.status(403).json({ error: 'Không có quyền chỉnh sửa map này' });
     }
     
+    if (maps[0].status === 'inactive') {
+      return res.status(410).json({ error: 'Map này không còn hoạt động nên không thể chỉnh sửa' });
+    }
+
+    const nextPublished = typeof is_published === 'boolean'
+      ? is_published
+      : Boolean(maps[0].is_published);
+    const nextStatus = nextPublished ? 'active' : 'pending';
+    
     await db.query(
-      'UPDATE community_maps SET title = ?, description = ?, grid_data = ?, initial_code = ?, is_published = ? WHERE id = ?',
-      [title, description, JSON.stringify(grid_data), initial_code, is_published, mapId]
+      `UPDATE community_maps
+       SET title = ?, description = ?, grid_data = ?, initial_code = ?,
+           is_published = ?, status = ?, inactive_at = NULL
+       WHERE id = ?`,
+      [title, description, JSON.stringify(grid_data), initial_code, nextPublished, nextStatus, mapId]
     );
 
     // Đồng bộ danh mục nếu được truyền lên
@@ -276,10 +301,15 @@ exports.deleteMap = async (req, res) => {
       return res.status(403).json({ error: 'Không có quyền xóa map này' });
     }
     
-    // community_map_categories sẽ tự xóa nhờ ON DELETE CASCADE
-    await db.query('DELETE FROM community_maps WHERE id = ?', [mapId]);
+    // Soft-delete: giu history, ratings va lien ket category.
+    await db.query(
+      `UPDATE community_maps
+       SET status = 'inactive', is_published = FALSE, inactive_at = NOW()
+       WHERE id = ?`,
+      [mapId]
+    );
     
-    res.json({ message: 'Xóa map thành công' });
+    res.json({ message: 'Map đã chuyển sang trạng thái không còn hoạt động' });
     
   } catch (error) {
     console.error('Delete map error:', error);
@@ -297,7 +327,9 @@ exports.getUserHistory = async (req, res) => {
         ch.*,
         cm.title,
         cm.map_code,
-        cm.created_by
+        cm.created_by,
+        cm.is_published,
+        cm.status
       FROM community_history ch
       JOIN community_maps cm ON ch.map_id = cm.id
       WHERE ch.user_id = ?
@@ -320,7 +352,8 @@ exports.submitMap = async (req, res) => {
     const { user_code, is_completed, steps_count, time_spent } = req.body;
     
     const [maps] = await db.query(
-      'SELECT id FROM community_maps WHERE id = ?',
+      `SELECT id FROM community_maps
+       WHERE id = ? AND is_published = TRUE AND (status IS NULL OR status = 'active')`,
       [mapId]
     );
     
@@ -386,6 +419,16 @@ exports.rateMap = async (req, res) => {
     
     if (!rating || rating < 1 || rating > 5) {
       return res.status(400).json({ error: 'Rating phải từ 1 đến 5' });
+    }
+    
+    const [maps] = await db.query(
+      `SELECT id FROM community_maps
+       WHERE id = ? AND is_published = TRUE AND (status IS NULL OR status = 'active')`,
+      [mapId]
+    );
+
+    if (maps.length === 0) {
+      return res.status(410).json({ error: 'Map khong con hoat dong' });
     }
     
     const [existing] = await db.query(
@@ -458,6 +501,8 @@ const getUserCommunityHistory = async (req, res) => {
          cm.title        AS map_title,
          cm.map_code,
          cm.average_rating AS map_rating,
+         cm.is_published,
+         cm.status,
          u.username      AS map_author,
          u.full_name     AS map_author_name
        FROM community_history ch
@@ -483,7 +528,7 @@ const getMyMaps = async (req, res) => {
     const [maps] = await db.query(
       `SELECT
          id, map_code, title, description,
-         is_published, play_count,
+         is_published, status, inactive_at, play_count,
          average_rating, total_ratings,
          created_at, updated_at
        FROM community_maps
@@ -504,6 +549,7 @@ const getMyMaps = async (req, res) => {
        FROM community_map_categories cmc
        JOIN categories c ON c.id = cmc.category_id
        WHERE cmc.map_id IN (${placeholders})
+         AND (c.status IS NULL OR c.status = 'active')
        ORDER BY c.name ASC`,
       mapIds
     );

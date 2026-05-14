@@ -19,8 +19,9 @@ const getAllMaps = async (req, res) => {
       params.push(like, like, like);
     }
 
-    if (filter === "published") conditions.push(`cm.is_published = TRUE`);
-    if (filter === "draft")     conditions.push(`cm.is_published = FALSE`);
+    if (filter === "published") conditions.push(`cm.is_published = TRUE AND (cm.status IS NULL OR cm.status = 'active')`);
+    if (filter === "draft")     conditions.push(`cm.is_published = FALSE AND (cm.status IS NULL OR cm.status = 'pending')`);
+    if (filter === "inactive")  conditions.push(`cm.status = 'inactive'`);
 
     const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
 
@@ -41,6 +42,8 @@ const getAllMaps = async (req, res) => {
          cm.title,
          cm.description,
          cm.is_published,
+         cm.status,
+         cm.inactive_at,
          cm.play_count,
          cm.average_rating,
          cm.total_ratings,
@@ -82,9 +85,10 @@ const getMapStats = async (req, res) => {
   try {
     const [[stats]] = await db.query(
       `SELECT
-         COUNT(*)                          AS total_maps,
-         SUM(is_published = TRUE)          AS published_maps,
-         SUM(is_published = FALSE)         AS draft_maps,
+         SUM(status IS NULL OR status != 'inactive') AS total_maps,
+         SUM(is_published = TRUE AND (status IS NULL OR status = 'active')) AS published_maps,
+         SUM(is_published = FALSE AND (status IS NULL OR status = 'pending')) AS draft_maps,
+         SUM(status = 'inactive')          AS inactive_maps,
          SUM(play_count)                   AS total_plays,
          ROUND(AVG(average_rating), 2)     AS avg_rating,
          SUM(total_ratings)                AS total_ratings,
@@ -98,7 +102,7 @@ const getMapStats = async (req, res) => {
       `SELECT cm.id, cm.map_code, cm.title, cm.play_count, u.username AS author
        FROM community_maps cm
        JOIN users u ON u.id = cm.created_by
-       WHERE cm.is_published = TRUE
+       WHERE cm.is_published = TRUE AND (cm.status IS NULL OR cm.status = 'active')
        ORDER BY cm.play_count DESC
        LIMIT 5`
     );
@@ -143,7 +147,8 @@ const getMapById = async (req, res) => {
       `SELECT c.id, c.name
        FROM categories c
        JOIN community_map_categories cmc ON cmc.category_id = c.id
-       WHERE cmc.map_id = ?`,
+       WHERE cmc.map_id = ?
+         AND (c.status IS NULL OR c.status = 'active')`,
       [id]
     );
 
@@ -185,7 +190,7 @@ const togglePublishMap = async (req, res) => {
     }
 
     const [[map]] = await db.query(
-      `SELECT id, title FROM community_maps WHERE id = ?`,
+      `SELECT id, title, status FROM community_maps WHERE id = ?`,
       [id]
     );
 
@@ -194,8 +199,10 @@ const togglePublishMap = async (req, res) => {
     }
 
     await db.query(
-      `UPDATE community_maps SET is_published = ? WHERE id = ?`,
-      [is_published, id]
+      `UPDATE community_maps
+       SET is_published = ?, status = ?, inactive_at = NULL
+       WHERE id = ?`,
+      [is_published, is_published ? 'active' : 'pending', id]
     );
 
     res.json({
@@ -217,7 +224,7 @@ const deleteMap = async (req, res) => {
     const { id } = req.params;
 
     const [[map]] = await db.query(
-      `SELECT id, title, play_count FROM community_maps WHERE id = ?`,
+      `SELECT id, title, play_count, status FROM community_maps WHERE id = ?`,
       [id]
     );
 
@@ -225,12 +232,17 @@ const deleteMap = async (req, res) => {
       return res.status(404).json({ success: false, message: "Không tìm thấy màn chơi" });
     }
 
-    // ON DELETE CASCADE trong DB tự xóa: community_history, community_map_ratings, community_map_categories
-    await db.query(`DELETE FROM community_maps WHERE id = ?`, [id]);
+    // Soft-delete: giu history, ratings va lien ket category.
+    await db.query(
+      `UPDATE community_maps
+       SET status = 'inactive', is_published = FALSE, inactive_at = NOW()
+       WHERE id = ?`,
+      [id]
+    );
 
     res.json({
       success: true,
-      message: `Đã xóa màn chơi "${map.title}"`,
+      message: `Đã chuyển màn chơi "${map.title}" sang trạng thái không còn hoạt động`,
     });
   } catch (error) {
     console.error("deleteMap:", error);

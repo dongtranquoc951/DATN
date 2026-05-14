@@ -7,7 +7,6 @@ import GameGrid from "../../../components/game/GameGrid";
 // ── CodeMirror imports ────────────────────────────────────────────────────────
 import CodeMirror from "@uiw/react-codemirror";
 import { javascript } from "@codemirror/lang-javascript";
-import { solarizedLight } from '@uiw/codemirror-theme-solarized';
 import { EditorView } from "@codemirror/view";
 import { autocompletion } from "@codemirror/autocomplete";
 
@@ -64,11 +63,11 @@ const cmExtensions = [
   EditorView.lineWrapping,
   autocompletion({ override: [engineAutocomplete], activateOnTyping: true }),
   EditorView.theme({
-    "&": { fontSize: "13px", fontFamily: "Consolas, Monaco, 'Courier New', monospace" },
+    "&": { fontSize: "13px", fontFamily: "Consolas, Monaco, 'Courier New', monospace", height: "320px" },
     ".cm-content": { padding: "14px 0", minHeight: "320px" },
     ".cm-gutters": { borderRight: "1px solid #2a2d3a", minWidth: "44px" },
     ".cm-lineNumbers .cm-gutterElement": { padding: "0 10px 0 8px", minWidth: "28px", textAlign: "right" },
-    ".cm-scroller": { lineHeight: "1.7" },
+    ".cm-scroller": { lineHeight: "1.7", overflow: "auto" },
     ".cm-activeLine": { backgroundColor: "rgba(255,255,255,0.04)" },
     ".cm-activeLineGutter": { backgroundColor: "rgba(255,255,255,0.06)" },
     // Tooltip autocomplete styling
@@ -593,10 +592,10 @@ export default function PlayLevel() {
 
           {/* Code editor */}
           <div style={{
-            background: "#282c34",
+            background: "white",
             borderRadius: 16,
-            border: `1.5px solid ${isDragOver ? "#7f77dd" : "#3a3f4b"}`,
-            boxShadow: isDragOver ? "0 0 0 3px #eeedfe44" : "none",
+            border: `1.5px solid ${isDragOver ? "#7f77dd" : "#e8eaf0"}`,
+            boxShadow: isDragOver ? "0 0 0 3px #eeedfe" : "none",
             overflow: "hidden",
             display: "flex",
             flexDirection: "column",
@@ -604,28 +603,15 @@ export default function PlayLevel() {
           }}>
             {/* Editor header */}
             <div style={{
-              padding: "11px 16px",
-              borderBottom: "1px solid #3a3f4b",
+              padding: "12px 16px",
+              borderBottom: "0.5px solid #f0f0f8",
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              background: "#ffffff",
+              background: "white",
             }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <div style={{ display: "flex", gap: 6 }}>
-                  <div style={{ width: 11, height: 11, borderRadius: "50%", background: "#ff5f57" }} />
-                  <div style={{ width: 11, height: 11, borderRadius: "50%", background: "#febc2e" }} />
-                  <div style={{ width: 11, height: 11, borderRadius: "50%", background: "#28c840" }} />
-                </div>
-                <div style={{ fontSize: 11, color: "#6b7280", fontFamily: "Consolas, monospace", letterSpacing: ".03em" }}>
-                  Editor
-                </div>
-              </div>
-              {isDragOver && (
-                <div style={{ fontSize: 10, color: "#7f77dd", fontWeight: 500, animation: "blink .6s ease infinite" }}>
-                  ↓ Thả để chèn
-                </div>
-              )}
+              <div style={{ fontSize: 11, fontWeight: 500, color: "#8888aa", textTransform: "uppercase", letterSpacing: ".05em" }}>Code Editor</div>
+              {isDragOver && <div style={{ fontSize: 10, color: "#7f77dd", fontWeight: 500, animation: "blink .6s ease infinite" }}>↓ Thả để chèn</div>}
             </div>
 
             {/* CodeMirror editor */}
@@ -653,7 +639,7 @@ export default function PlayLevel() {
                   syntaxHighlighting:        true,
                   bracketMatching:           true,
                   closeBrackets:             true,
-                  autocompletion:            false, // dùng extension riêng ở trên
+                  autocompletion:            false,
                   rectangularSelection:      false,
                   crosshairCursor:           false,
                   highlightActiveLine:       true,
@@ -663,45 +649,53 @@ export default function PlayLevel() {
                   searchKeymap:              false,
                   historyKeymap:             true,
                   foldKeymap:                false,
-                  completionKeymap:          true,  // giữ Ctrl+Space để trigger thủ công
+                  completionKeymap:          true,
                   lintKeymap:                false,
+                }}
+                placeholder={"// Viết code hoặc kéo block từ bảng bên dưới\n// Lệnh: moveRight(), moveLeft(), moveUp(), moveDown()"}
+                style={{
+                  flex: 1, padding: "14px 16px",
+                  border: "none", outline: "none", resize: "none",
+                  fontSize: 13, fontFamily: "Consolas, Monaco, 'Courier New', monospace",
+                  lineHeight: 1.7, color: "#1a1a2e",
+                  background: isRunning ? "#fafafe" : isDragOver ? "#f8f7ff" : "white",
+                  minHeight: 280, transition: "background .15s",
                 }}
               />
             </div>
 
-            {/* Action buttons */}
             <div style={{
-              padding: "12px 14px",
-              borderTop: "1px solid #3a3f4b",
+              padding: "12px 16px",
+              borderTop: "0.5px solid #f0f0f8",
               display: "flex",
               gap: 8,
-              background: "#ffffff",
+              background: "white",
             }}>
               <button
                 onClick={handleRun}
                 disabled={isRunning}
                 style={{
                   flex: 1, padding: "10px 0",
-                  border: "none", borderRadius: 9,
+                  border: "none", borderRadius: 10,
                   fontSize: 13, fontWeight: 500,
                   cursor: isRunning ? "not-allowed" : "pointer",
                   fontFamily: "inherit", transition: "opacity .15s",
-                  background: isRunning ? "#3a3f4b" : "#1D9E75",
-                  color: isRunning ? "#6b7280" : "white",
+                  background: isRunning ? "#D3D1C7" : "#1D9E75",
+                  color: isRunning ? "#888780" : "white",
                 }}
                 onMouseEnter={e => { if (!isRunning) e.currentTarget.style.opacity = ".85"; }}
                 onMouseLeave={e => { e.currentTarget.style.opacity = "1"; }}
               >
-                {isRunning ? "Đang chạy..." : "Run"}
+                {isRunning ? "Đang chạy..." : "▶️ Run"}
               </button>
               <button
                 onClick={handleReset}
                 disabled={isRunning}
                 style={{
                   padding: "10px 18px",
-                  background: "#1D9E75", color: "#fcfdff",
-                  border: "1px solid #3a3f4b",
-                  borderRadius: 9, fontSize: 13, fontWeight: 500,
+                  background: "#f0f0f8", color: "#534ab7",
+                  border: "none",
+                  borderRadius: 10, fontSize: 13, fontWeight: 500,
                   cursor: isRunning ? "not-allowed" : "pointer",
                   fontFamily: "inherit",
                   opacity: isRunning ? .5 : 1, transition: "opacity .15s",

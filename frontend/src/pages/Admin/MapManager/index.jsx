@@ -320,7 +320,7 @@ export default function MapManager() {
       const data = await http.delete(`${API}/maps/${deleteTarget.id}`);
       setMaps((prev) => prev.filter((m) => m.id !== deleteTarget.id));
       fetchStats();
-      showToast(data.message, "danger");
+      showToast(data.message || "Da ngung hoat dong man choi", "danger");
     } catch (err) {
       showToast(err?.message || "Lỗi khi xóa màn chơi", "danger");
     } finally {
@@ -335,6 +335,7 @@ export default function MapManager() {
     { key: "all",       label: "Tất cả" },
     { key: "published", label: "Đã xuất bản" },
     { key: "draft",     label: "Bản nháp" },
+    { key: "inactive",  label: "Không hoạt động" },
   ];
 
   const actionBtnStyle = (color) => ({
@@ -441,7 +442,9 @@ export default function MapManager() {
                     )}
                   </td>
                   <td style={{ padding: "14px 16px" }}>
-                    <Badge type={m.is_published ? "published" : "draft"}>{m.is_published ? "Xuất bản" : "Bản nháp"}</Badge>
+                    <Badge type={m.status === "inactive" ? "draft" : m.is_published ? "published" : "draft"}>
+                      {m.status === "inactive" ? "Không hoạt động" : m.is_published ? "Xuất bản" : "Bản nháp"}
+                    </Badge>
                   </td>
                   <td style={{ padding: "14px 16px" }}>
                     <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 12.5, color: "#6B6B65" }}>{(m.play_count || 0).toLocaleString()}</span>
@@ -457,9 +460,11 @@ export default function MapManager() {
                     <div style={{ display: "flex", alignItems: "center", gap: 4, justifyContent: "flex-end" }}>
                       <button style={actionBtnStyle()} onClick={() => openDetail(m)}>Chi tiết</button>
                       <button style={actionBtnStyle(m.is_published ? "#D97706" : "#16A34A")} onClick={() => togglePublish(m)}>
-                        {m.is_published ? "Ẩn" : "Xuất bản"}
+                        {m.status === "inactive" ? "Khôi phục" : m.is_published ? "Ẩn" : "Xuất bản"}
                       </button>
-                      <button style={actionBtnStyle("#DC2626")} onClick={() => setDeleteTarget(m)}>Xóa</button>
+                      {m.status !== "inactive" && (
+                        <button style={actionBtnStyle("#DC2626")} onClick={() => setDeleteTarget(m)}>Ngừng</button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -505,23 +510,23 @@ export default function MapManager() {
       <Modal
         open={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
-        title="Xác nhận xóa màn chơi"
-        subtitle="Hành động này không thể hoàn tác"
+        title="Ngừng hoạt động màn chơi"
+        subtitle="Màn chơi sẽ bị ẩn khỏi danh sách công khai"
         width={420}
         footer={
           <>
             <Btn variant="ghost" onClick={() => setDeleteTarget(null)} disabled={actionLoading}>Hủy</Btn>
             <Btn variant="danger" onClick={handleDelete} disabled={actionLoading}>
-              {actionLoading ? "Đang xóa..." : "Xác nhận Xóa"}
+              {actionLoading ? "Đang xử lý..." : "Ngừng hoạt động"}
             </Btn>
           </>
         }
       >
         {deleteTarget && (
           <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10, padding: 16 }}>
-            <div style={{ fontSize: 14, fontWeight: 600, color: "#DC2626", marginBottom: 6 }}>Xóa "{deleteTarget.title}"?</div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "#DC2626", marginBottom: 6 }}>Ngừng hoạt động "{deleteTarget.title}"?</div>
             <div style={{ fontSize: 12.5, color: "#9B1C1C", lineHeight: 1.6 }}>
-              Màn chơi <strong>{deleteTarget.map_code}</strong> và toàn bộ lịch sử chơi ({deleteTarget.play_count || 0} lượt) sẽ bị xóa vĩnh viễn. Hành động này không thể hoàn tác.
+              Màn chơi <strong>{deleteTarget.map_code}</strong> sẽ không còn hiện ở danh sách cộng đồng, nhưng lịch sử chơi và đánh giá vẫn được giữ lại.
             </div>
           </div>
         )}

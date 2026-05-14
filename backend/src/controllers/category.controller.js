@@ -6,6 +6,7 @@ exports.getAllCategories = async (req, res) => {
     const [categories] = await db.query(
       `SELECT id, name, description, created_at
        FROM categories
+       WHERE status IS NULL OR status = 'active'
        ORDER BY name ASC`
     );
     res.json({ success: true, categories });
@@ -15,12 +16,29 @@ exports.getAllCategories = async (req, res) => {
   }
 };
 
+// GET /api/categories/admin/all
+exports.getAdminCategories = async (req, res) => {
+  try {
+    const [categories] = await db.query(
+      `SELECT id, name, description, status, inactive_at, created_at
+       FROM categories
+       ORDER BY status ASC, name ASC`
+    );
+    res.json({ success: true, categories });
+  } catch (error) {
+    console.error('getAdminCategories:', error);
+    res.status(500).json({ success: false, message: 'Lỗi server' });
+  }
+};
+
 // GET /api/categories/:id
 exports.getCategoryById = async (req, res) => {
   try {
     const { id } = req.params;
     const [[category]] = await db.query(
-      `SELECT id, name, description, created_at FROM categories WHERE id = ?`, [id]
+      `SELECT id, name, description, created_at
+       FROM categories
+       WHERE id = ? AND (status IS NULL OR status = 'active')`, [id]
     );
     if (!category) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy category' });
@@ -43,9 +61,22 @@ exports.createCategory = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Tên category là bắt buộc' });
     }
     const [[existing]] = await db.query(
-      `SELECT id FROM categories WHERE name = ?`, [name.trim()]
+      `SELECT id, status FROM categories WHERE name = ?`, [name.trim()]
     );
     if (existing) {
+      if (existing.status === 'inactive') {
+        await db.query(
+          `UPDATE categories
+           SET description = ?, status = 'active', inactive_at = NULL
+           WHERE id = ?`,
+          [description || null, existing.id]
+        );
+        return res.status(200).json({
+          success: true,
+          message: `Da khoi phuc category "${name}"`,
+          data: { id: existing.id },
+        });
+      }
       return res.status(400).json({ success: false, message: `Category "${name}" đã tồn tại` });
     }
     const [result] = await db.query(
@@ -69,14 +100,17 @@ exports.updateCategory = async (req, res) => {
     const { id } = req.params;
     const { name, description } = req.body;
     const [[category]] = await db.query(
-      `SELECT id, name FROM categories WHERE id = ?`, [id]
+      `SELECT id, name, status FROM categories WHERE id = ?`, [id]
     );
     if (!category) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy category' });
     }
+    if (category.status === 'inactive') {
+      return res.status(410).json({ success: false, message: 'Category khong con hoat dong' });
+    }
     if (name && name.trim() !== category.name) {
       const [[dup]] = await db.query(
-        `SELECT id FROM categories WHERE name = ? AND id != ?`, [name.trim(), id]
+        `SELECT id FROM categories WHERE name = ? AND id != ? AND (status IS NULL OR status = 'active')`, [name.trim(), id]
       );
       if (dup) {
         return res.status(400).json({ success: false, message: `Tên "${name}" đã được dùng` });
@@ -98,7 +132,7 @@ exports.deleteCategory = async (req, res) => {
   try {
     const { id } = req.params;
     const [[category]] = await db.query(
-      `SELECT id, name FROM categories WHERE id = ?`, [id]
+      `SELECT id, name FROM categories WHERE id = ? AND (status IS NULL OR status = 'active')`, [id]
     );
     if (!category) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy category' });
@@ -106,7 +140,12 @@ exports.deleteCategory = async (req, res) => {
     const [[{ map_count }]] = await db.query(
       `SELECT COUNT(*) AS map_count FROM community_map_categories WHERE category_id = ?`, [id]
     );
-    await db.query(`DELETE FROM categories WHERE id = ?`, [id]);
+    await db.query(
+      `UPDATE categories
+       SET status = 'inactive', inactive_at = NOW()
+       WHERE id = ?`,
+      [id]
+    );
     res.json({
       success: true,
       message: `Đã xóa category "${category.name}" (gỡ khỏi ${map_count} bản đồ)`,
@@ -117,13 +156,47 @@ exports.deleteCategory = async (req, res) => {
   }
 };
 
+// PATCH /api/categories/:id/restore
+exports.restoreCategory = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [[category]] = await db.query(
+      `SELECT id, name, status FROM categories WHERE id = ?`,
+      [id]
+    );
+
+    if (!category) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy category' });
+    }
+
+    if (category.status !== 'inactive') {
+      return res.status(400).json({ success: false, message: 'Category đang hoạt động' });
+    }
+
+    await db.query(
+      `UPDATE categories
+       SET status = 'active', inactive_at = NULL
+       WHERE id = ?`,
+      [id]
+    );
+
+    res.json({
+      success: true,
+      message: `Đã khôi phục category "${category.name}"`,
+    });
+  } catch (error) {
+    console.error('restoreCategory:', error);
+    res.status(500).json({ success: false, message: 'Lỗi server' });
+  }
+};
+
 // GET /api/categories/:id/maps
 exports.getMapsByCategory = async (req, res) => {
   try {
     const { id } = req.params;
     const { limit = 20, offset = 0 } = req.query;
     const [[category]] = await db.query(
-      `SELECT id, name FROM categories WHERE id = ?`, [id]
+      `SELECT id, name FROM categories WHERE id = ? AND (status IS NULL OR status = 'active')`, [id]
     );
     if (!category) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy category' });
@@ -133,7 +206,7 @@ exports.getMapsByCategory = async (req, res) => {
        FROM community_maps cm
        JOIN community_map_categories cmc ON cmc.map_id = cm.id
        JOIN users u ON u.id = cm.created_by
-       WHERE cmc.category_id = ? AND cm.is_published = TRUE
+       WHERE cmc.category_id = ? AND cm.is_published = TRUE AND (cm.status IS NULL OR cm.status = 'active')
        ORDER BY cm.play_count DESC
        LIMIT ? OFFSET ?`,
       [id, parseInt(limit), parseInt(offset)]

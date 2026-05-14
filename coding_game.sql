@@ -76,6 +76,8 @@ CREATE TABLE categories (
   description TEXT,
   icon VARCHAR(50),
   display_order INT DEFAULT 0,
+  status ENUM('active', 'inactive') NOT NULL DEFAULT 'active',
+  inactive_at TIMESTAMP NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 ALTER TABLE categories
@@ -97,6 +99,8 @@ CREATE TABLE community_maps (
   play_count INT DEFAULT 0,
   average_rating DECIMAL(3,2) DEFAULT 0.00,
   total_ratings INT DEFAULT 0,
+  status ENUM('pending', 'active', 'inactive') NOT NULL DEFAULT 'active',
+  inactive_at TIMESTAMP NULL,
   FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE,
   INDEX idx_rating (average_rating, total_ratings),
   INDEX idx_created_by (created_by)
@@ -231,4 +235,3 @@ UPDATE users
 SET is_active = 1
 WHERE id = 1;
 SELECT * FROM community_history;
-
