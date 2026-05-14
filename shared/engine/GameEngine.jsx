@@ -246,8 +246,8 @@ export class GameEngine {
 
       // Inject loop guard
       processedCode = processedCode
-        .replace(/\bwhile\s*\(\s*([^)]+)\s*\)/g, 'while (checkLoopLimit(), ($1))')
-        .replace(/\bfor\s*\(\s*([^;]+);([^;]+);([^)]+)\)/g, 'for (checkLoopLimit(), $1; $2; $3)');
+        .replace(/\bwhile\s*\((.+)\)\s*\{/g, 'while (checkLoopLimit(), ($1)) {')
+        .replace(/\bfor\s*\(([^;]+);([^;]+);([^)]+)\)\s*\{/g, 'for ($1; $2; $3) { checkLoopLimit();');
 
       await eval(`(async () => { ${processedCode} })()`);
       await this.sleep(300);

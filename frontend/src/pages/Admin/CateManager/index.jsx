@@ -2,46 +2,51 @@ import { useState, useEffect, useCallback } from "react";
 
 const API_BASE_URL = "http://localhost:5000/api";
 
-// ─── Shared primitives (matching MapManager style) ───────────────────────────
-
+// ─── Spinner ─────────────────────────────────────────────────────────────────
 function Spinner() {
   return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 40 }}>
-      <div style={{ width: 28, height: 28, borderRadius: "50%", border: "3px solid #E8E8E4", borderTopColor: "#2563EB", animation: "spin 0.7s linear infinite" }} />
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    <div className="flex items-center justify-center p-10">
+      <div className="w-7 h-7 rounded-full border-[3px] border-gray-200 border-t-blue-600 animate-spin" />
     </div>
   );
 }
 
+// ─── Toast ────────────────────────────────────────────────────────────────────
 function Toast({ message, type, onClose }) {
   useEffect(() => {
     const t = setTimeout(onClose, 3000);
     return () => clearTimeout(t);
   }, [onClose]);
-  const colors = { success: "#166534", danger: "#991B1B", info: "#1A1A18" };
+
+  const bg = { success: "bg-green-800", danger: "bg-red-800", info: "bg-gray-900" };
+
   return (
-    <div style={{ position: "fixed", bottom: 24, right: 24, zIndex: 400, display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", background: colors[type] || colors.info, color: "white", borderRadius: 10, fontSize: 13, fontWeight: 500, boxShadow: "0 4px 16px rgba(0,0,0,0.15)", minWidth: 240, animation: "slideUp 0.2s ease" }}>
+    <div className={`fixed bottom-6 right-6 z-[400] flex items-center gap-2.5 px-4 py-3 ${bg[type] || bg.info} text-white rounded-xl text-sm font-medium shadow-lg min-w-[240px] animate-[slideUp_0.2s_ease]`}>
       <style>{`@keyframes slideUp { from{transform:translateY(10px);opacity:0} to{transform:translateY(0);opacity:1} }`}</style>
       {message}
     </div>
   );
 }
 
+// ─── Modal ────────────────────────────────────────────────────────────────────
 function Modal({ open, onClose, title, subtitle, footer, children, width = 480 }) {
   if (!open) return null;
   return (
-    <div onClick={(e) => e.target === e.currentTarget && onClose()} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.35)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}>
-      <div style={{ background: "white", borderRadius: 14, width, maxWidth: "calc(100vw - 40px)", maxHeight: "calc(100vh - 60px)", overflowY: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.15)" }}>
-        <div style={{ padding: "22px 24px 18px", borderBottom: "1px solid #E8E8E4", display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+    <div
+      className="fixed inset-0 bg-black/35 backdrop-blur-sm flex items-center justify-center z-[200]"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="bg-white rounded-2xl overflow-y-auto shadow-2xl" style={{ width, maxWidth: "calc(100vw - 40px)", maxHeight: "calc(100vh - 60px)" }}>
+        <div className="flex items-start justify-between px-6 py-5 border-b border-gray-100">
           <div>
-            <div style={{ fontSize: 16, fontWeight: 600, letterSpacing: "-0.01em" }}>{title}</div>
-            {subtitle && <div style={{ fontSize: 12.5, color: "#A8A89E", marginTop: 3 }}>{subtitle}</div>}
+            <div className="text-sm font-semibold text-gray-900">{title}</div>
+            {subtitle && <div className="text-xs text-gray-400 mt-0.5">{subtitle}</div>}
           </div>
-          <button onClick={onClose} style={{ width: 28, height: 28, borderRadius: 6, border: "1px solid #E8E8E4", background: "transparent", cursor: "pointer", fontSize: 14, color: "#6B6B65" }}>✕</button>
+          <button onClick={onClose} className="w-7 h-7 rounded-md border border-gray-200 bg-transparent cursor-pointer text-sm text-gray-500 hover:bg-gray-50 transition-colors flex items-center justify-center">✕</button>
         </div>
-        <div style={{ padding: "20px 24px" }}>{children}</div>
+        <div className="px-6 py-5">{children}</div>
         {footer && (
-          <div style={{ padding: "16px 24px", borderTop: "1px solid #E8E8E4", display: "flex", gap: 8, justifyContent: "flex-end" }}>
+          <div className="flex gap-2 justify-end px-6 py-4 border-t border-gray-100">
             {footer}
           </div>
         )}
@@ -50,43 +55,42 @@ function Modal({ open, onClose, title, subtitle, footer, children, width = 480 }
   );
 }
 
-function Btn({ variant = "outline", onClick, children, disabled = false, style: extraStyle = {} }) {
+// ─── Btn ──────────────────────────────────────────────────────────────────────
+function Btn({ variant = "outline", onClick, children, disabled = false }) {
   const vs = {
-    primary: { background: "#2563EB", color: "white",    border: "1px solid #2563EB" },
-    outline: { background: "white",   color: "#6B6B65",  border: "1px solid #E8E8E4" },
-    ghost:   { background: "transparent", color: "#6B6B65", border: "1px solid transparent" },
-    danger:  { background: "#DC2626", color: "white",    border: "1px solid #DC2626" },
-    success: { background: "#16A34A", color: "white",    border: "1px solid #16A34A" },
+    primary: "bg-blue-600 text-white border border-blue-600 hover:bg-blue-700",
+    outline: "bg-white text-gray-500 border border-gray-200 hover:bg-gray-50",
+    ghost:   "bg-transparent text-gray-500 border border-transparent hover:bg-gray-50",
+    danger:  "bg-red-600 text-white border border-red-600 hover:bg-red-700",
+    success: "bg-green-600 text-white border border-green-600 hover:bg-green-700",
   };
   return (
-    <button onClick={onClick} disabled={disabled} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 6, fontSize: 13, fontFamily: "'DM Sans', sans-serif", fontWeight: 500, cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? 0.6 : 1, ...vs[variant], ...extraStyle }}>
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-md text-xs font-medium cursor-pointer transition-colors ${vs[variant]} ${disabled ? "opacity-60 cursor-not-allowed" : ""}`}
+    >
       {children}
     </button>
   );
 }
 
+// ─── Field ────────────────────────────────────────────────────────────────────
 function Field({ label, value, onChange, placeholder, multiline = false, error }) {
-  const base = {
-    width: "100%", padding: "9px 12px", borderRadius: 6, fontSize: 13,
-    border: `1px solid ${error ? "#FCA5A5" : "#E8E8E4"}`,
-    outline: "none", boxSizing: "border-box",
-    fontFamily: "'DM Sans', sans-serif", color: "#1A1A18",
-    background: "#FAFAFA",
-  };
+  const base = `w-full px-3 py-2 rounded-md text-sm border bg-gray-50 text-gray-900 outline-none transition-colors ${error ? "border-red-300 focus:border-red-500" : "border-gray-200 focus:border-blue-500"}`;
   return (
     <div>
-      <label style={{ display: "block", fontSize: 11.5, fontWeight: 600, color: "#6B6B65", marginBottom: 6, letterSpacing: "0.03em", textTransform: "uppercase" }}>{label}</label>
+      <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">{label}</label>
       {multiline
-        ? <textarea value={value} onChange={onChange} placeholder={placeholder} rows={3} style={{ ...base, resize: "vertical" }} onFocus={e => e.target.style.borderColor = "#2563EB"} onBlur={e => e.target.style.borderColor = error ? "#FCA5A5" : "#E8E8E4"} />
-        : <input   value={value} onChange={onChange} placeholder={placeholder}           style={base}                               onFocus={e => e.target.style.borderColor = "#2563EB"} onBlur={e => e.target.style.borderColor = error ? "#FCA5A5" : "#E8E8E4"} autoFocus />
+        ? <textarea value={value} onChange={onChange} placeholder={placeholder} rows={3} className={`${base} resize-y`} />
+        : <input value={value} onChange={onChange} placeholder={placeholder} className={base} autoFocus />
       }
-      {error && <p style={{ fontSize: 12, color: "#DC2626", margin: "4px 0 0" }}>{error}</p>}
+      {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
     </div>
   );
 }
 
-// ─── Category form (inside Modal) ────────────────────────────────────────────
-
+// ─── CategoryForm ─────────────────────────────────────────────────────────────
 function CategoryForm({ data, onSave, onClose, loading }) {
   const isEdit = !!data;
   const [form, setForm] = useState({ name: data?.name || "", description: data?.description || "" });
@@ -99,14 +103,14 @@ function CategoryForm({ data, onSave, onClose, loading }) {
 
   return (
     <>
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <div className="flex flex-col gap-4">
         <Field label="Tên danh mục *" value={form.name} placeholder="VD: Dễ, Trung bình, Mê cung..."
           onChange={e => { setForm(p => ({ ...p, name: e.target.value })); setErr(""); }}
           error={err} />
         <Field label="Mô tả" value={form.description} placeholder="Mô tả ngắn về danh mục..."
           onChange={e => setForm(p => ({ ...p, description: e.target.value }))} multiline />
       </div>
-      <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 20, paddingTop: 16, borderTop: "1px solid #E8E8E4" }}>
+      <div className="flex gap-2 justify-end mt-5 pt-4 border-t border-gray-100">
         <Btn variant="ghost" onClick={onClose}>Hủy</Btn>
         <Btn variant="primary" onClick={submit} disabled={loading}>
           {loading ? "Đang lưu..." : isEdit ? "Cập nhật" : "Thêm danh mục"}
@@ -116,13 +120,12 @@ function CategoryForm({ data, onSave, onClose, loading }) {
   );
 }
 
-// ─── Main component ───────────────────────────────────────────────────────────
-
+// ─── Main ─────────────────────────────────────────────────────────────────────
 export default function CategoryManager() {
   const [list, setList]         = useState([]);
   const [loading, setLoading]   = useState(true);
   const [search, setSearch]     = useState("");
-  const [modal, setModal]       = useState(null);   // { mode: "add"|"edit", data? }
+  const [modal, setModal]       = useState(null);
   const [delTarget, setDel]     = useState(null);
   const [saving, setSaving]     = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -184,34 +187,35 @@ export default function CategoryManager() {
     }
   };
 
-  const actionBtn = (color) => ({
-    display: "inline-flex", alignItems: "center", justifyContent: "center",
-    height: 28, padding: "0 10px", borderRadius: 6,
-    border: `1px solid ${color ? color + "40" : "#E8E8E4"}`,
-    background: color ? color + "10" : "white",
-    cursor: "pointer", fontSize: 11, fontWeight: 500,
-    color: color || "#6B6B65", fontFamily: "'DM Sans', sans-serif",
-  });
+  const filtered = list.filter(c =>
+    !search ||
+    c.name.toLowerCase().includes(search.toLowerCase()) ||
+    (c.description || "").toLowerCase().includes(search.toLowerCase())
+  );
 
-  const filtered = list.filter(c => !search || c.name.toLowerCase().includes(search.toLowerCase()) || (c.description || "").toLowerCase().includes(search.toLowerCase()));
-
-  // Stats
-  const withDesc    = list.filter(c => c.description && c.description.trim()).length;
+  const withDesc    = list.filter(c => c.description?.trim()).length;
   const withoutDesc = list.length - withDesc;
 
+  const stats = [
+    { label: "Tổng danh mục", value: list.length,  badge: "Tất cả",     badgeColor: "bg-blue-50 text-blue-600",   icon: "bg-blue-50" },
+    { label: "Có mô tả",      value: withDesc,      badge: "Đầy đủ",     badgeColor: "bg-green-50 text-green-600", icon: "bg-green-50" },
+    { label: "Chưa có mô tả", value: withoutDesc,   badge: "Cần bổ sung", badgeColor: "bg-amber-50 text-amber-600", icon: "bg-amber-50" },
+  ];
+
   return (
-    <div style={{ fontFamily: "'DM Sans', sans-serif" }}>
+    <div className="font-sans">
 
       {/* Topbar */}
-      <div style={{ background: "white", borderBottom: "1px solid #E8E8E4", padding: "0 32px", height: 60, display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 50 }}>
+      <div className="bg-white border-b border-gray-100 px-8 h-[60px] flex items-center justify-between sticky top-0 z-50">
         <div>
-          <div style={{ fontSize: 15, fontWeight: 600, letterSpacing: "-0.01em" }}>Quản lý danh mục</div>
-          <div style={{ fontSize: 12, color: "#A8A89E", marginTop: 1 }}>Admin / Danh mục màn chơi</div>
+          <div className="text-sm font-semibold text-gray-900">Quản lý danh mục</div>
+          <div className="text-xs text-gray-400 mt-0.5">Admin / Danh mục màn chơi</div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#F7F7F5", border: "1px solid #E8E8E4", borderRadius: 6, padding: "7px 12px", width: 220 }}>
+        <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-md px-3 py-2 w-52">
             <svg width="13" height="13" fill="none" stroke="#A8A89E" strokeWidth="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Tìm danh mục..." style={{ border: "none", background: "transparent", fontSize: 13, fontFamily: "'DM Sans', sans-serif", color: "#1A1A18", outline: "none", width: "100%" }} />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Tìm danh mục..."
+              className="border-none bg-transparent text-sm text-gray-900 outline-none w-full placeholder-gray-400" />
           </div>
           <Btn variant="primary" onClick={() => setModal({ mode: "add" })}>
             <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -221,50 +225,39 @@ export default function CategoryManager() {
       </div>
 
       {/* Content */}
-      <div style={{ padding: "28px 32px" }}>
+      <div className="p-8">
 
         {/* Stats */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14, marginBottom: 24 }}>
-          {[
-            { label: "Tổng danh mục",    value: list.length,    badge: "Tất cả",        color: "#EFF4FF" },
-            { label: "Có mô tả",         value: withDesc,       badge: "Đầy đủ",         color: "#F0FDF4" },
-            { label: "Chưa có mô tả",    value: withoutDesc,    badge: "Cần bổ sung",    color: "#FFFBEB" },
-          ].map(s => (
-            <div key={s.label} style={{ background: "white", border: "1px solid #E8E8E4", borderRadius: 10, padding: "18px 20px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-                <div style={{ width: 34, height: 34, borderRadius: 8, background: s.color }} />
-                <span style={{ fontSize: 11, fontWeight: 500, padding: "3px 8px", borderRadius: 20, background: "#F0FDF4", color: "#16A34A" }}>{s.badge}</span>
+        <div className="grid grid-cols-3 gap-3.5 mb-6">
+          {stats.map(s => (
+            <div key={s.label} className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm">
+              <div className="flex items-center justify-between mb-3">
+                <div className={`w-8 h-8 rounded-lg ${s.icon}`} />
+                <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${s.badgeColor}`}>{s.badge}</span>
               </div>
-              <div style={{ fontSize: 26, fontWeight: 600, letterSpacing: "-0.03em", lineHeight: 1, marginBottom: 4 }}>{s.value}</div>
-              <div style={{ fontSize: 12.5, color: "#A8A89E" }}>{s.label}</div>
+              <div className="text-2xl font-semibold text-gray-900 leading-none mb-1">{s.value}</div>
+              <div className="text-xs text-gray-400">{s.label}</div>
             </div>
           ))}
         </div>
 
         {/* Table header */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+        <div className="flex items-center justify-between mb-4">
           <div>
-            <div style={{ fontSize: 14, fontWeight: 600 }}>Danh sách danh mục</div>
-            <div style={{ fontSize: 12, color: "#A8A89E", marginTop: 2 }}>
-              {filtered.length} / {list.length} danh mục
-            </div>
+            <div className="text-sm font-semibold text-gray-900">Danh sách danh mục</div>
+            <div className="text-xs text-gray-400 mt-0.5">{filtered.length} / {list.length} danh mục</div>
           </div>
         </div>
 
         {/* Table */}
-        <div style={{ background: "white", border: "1px solid #E8E8E4", borderRadius: 10, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", overflow: "hidden" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead style={{ background: "#F7F7F5", borderBottom: "1px solid #E8E8E4" }}>
+        <div className="bg-white border border-gray-100 rounded-xl shadow-sm overflow-hidden">
+          <table className="w-full border-collapse">
+            <thead className="bg-gray-50 border-b border-gray-100">
               <tr>
                 {["#", "Tên danh mục", "Mô tả", "Thao tác"].map((h, i) => (
-                  <th key={h} style={{
-                    padding: "11px 16px",
-                    textAlign: i === 3 ? "right" : "left",
-                    fontSize: 11.5, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", color: "#A8A89E",
-                    paddingLeft: i === 0 ? 20 : 16,
-                    paddingRight: i === 3 ? 20 : 16,
-                    width: i === 0 ? 48 : undefined,
-                  }}>{h}</th>
+                  <th key={h} className={`px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-gray-400 ${i === 3 ? "text-right pr-5" : "text-left"} ${i === 0 ? "pl-5 w-12" : ""}`}>
+                    {h}
+                  </th>
                 ))}
               </tr>
             </thead>
@@ -273,37 +266,38 @@ export default function CategoryManager() {
                 <tr><td colSpan={4}><Spinner /></td></tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={4} style={{ textAlign: "center", padding: 32, color: "#A8A89E", fontSize: 13 }}>
+                  <td colSpan={4} className="text-center py-8 text-sm text-gray-400">
                     {search ? "Không tìm thấy danh mục nào" : "Chưa có danh mục nào"}
                   </td>
                 </tr>
               ) : filtered.map((item, idx) => (
-                <tr key={item.id} style={{ borderBottom: "1px solid #E8E8E4" }}>
-                  {/* Index */}
-                  <td style={{ padding: "14px 16px", paddingLeft: 20 }}>
-                    <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: "#A8A89E" }}>{String(idx + 1).padStart(2, "0")}</span>
+                <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                  <td className="px-4 py-3.5 pl-5">
+                    <span className="font-mono text-xs text-gray-400">{String(idx + 1).padStart(2, "0")}</span>
                   </td>
-
-                  {/* Name */}
-                  <td style={{ padding: "14px 16px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontWeight: 500, fontSize: 13.5, color: "#1A1A18" }}>{item.name}</span>
-                    </div>
+                  <td className="px-4 py-3.5">
+                    <span className="text-sm font-medium text-gray-900">{item.name}</span>
                   </td>
-
-                  {/* Description */}
-                  <td style={{ padding: "14px 16px", maxWidth: 320 }}>
+                  <td className="px-4 py-3.5 max-w-xs">
                     {item.description
-                      ? <span style={{ fontSize: 13, color: "#6B6B65", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block" }}>{item.description}</span>
-                      : <span style={{ fontSize: 12.5, color: "#C8C8C0", fontStyle: "italic" }}>Chưa có mô tả</span>
+                      ? <span className="text-sm text-gray-500 truncate block">{item.description}</span>
+                      : <span className="text-xs text-gray-300 italic">Chưa có mô tả</span>
                     }
                   </td>
-
-                  {/* Actions */}
-                  <td style={{ padding: "14px 20px 14px 16px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 4, justifyContent: "flex-end" }}>
-                      <button style={actionBtn()} onClick={() => setModal({ mode: "edit", data: item })}>Sửa</button>
-                      <button style={actionBtn("#DC2626")} onClick={() => setDel(item)}>Xóa</button>
+                  <td className="px-4 py-3.5 pr-5">
+                    <div className="flex items-center gap-1.5 justify-end">
+                      <button
+                        onClick={() => setModal({ mode: "edit", data: item })}
+                        className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 cursor-pointer transition-colors"
+                      >
+                        Sửa
+                      </button>
+                      <button
+                        onClick={() => setDel(item)}
+                        className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 cursor-pointer transition-colors"
+                      >
+                        Xóa
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -311,14 +305,13 @@ export default function CategoryManager() {
             </tbody>
           </table>
 
-          {/* Footer bar */}
-          <div style={{ padding: "12px 20px", borderTop: "1px solid #E8E8E4", background: "#F7F7F5" }}>
-            <div style={{ fontSize: 12.5, color: "#A8A89E" }}>Hiển thị {filtered.length} / {list.length} danh mục</div>
+          <div className="px-5 py-3 border-t border-gray-100 bg-gray-50">
+            <div className="text-xs text-gray-400">Hiển thị {filtered.length} / {list.length} danh mục</div>
           </div>
         </div>
       </div>
 
-      {/* Add / Edit Modal */}
+      {/* Add/Edit Modal */}
       <Modal
         open={!!modal}
         onClose={() => setModal(null)}
@@ -335,7 +328,7 @@ export default function CategoryManager() {
         )}
       </Modal>
 
-      {/* Delete Confirm Modal */}
+      {/* Delete Modal */}
       <Modal
         open={!!delTarget}
         onClose={() => setDel(null)}
@@ -346,15 +339,15 @@ export default function CategoryManager() {
           <>
             <Btn variant="ghost" onClick={() => setDel(null)} disabled={deleting}>Hủy</Btn>
             <Btn variant="danger" onClick={handleDelete} disabled={deleting}>
-              {deleting ? "Đang xóa..." : "Xác nhận Xóa"}
+              {deleting ? "Đang xóa..." : "Xác nhận xóa"}
             </Btn>
           </>
         }
       >
         {delTarget && (
-          <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10, padding: 16 }}>
-            <div style={{ fontSize: 14, fontWeight: 600, color: "#DC2626", marginBottom: 6 }}>Xóa "{delTarget.name}"?</div>
-            <div style={{ fontSize: 12.5, color: "#9B1C1C", lineHeight: 1.6 }}>
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+            <div className="text-sm font-semibold text-red-600 mb-1.5">Xóa "{delTarget.name}"?</div>
+            <div className="text-xs text-red-800 leading-relaxed">
               Danh mục <strong>{delTarget.name}</strong> sẽ bị xóa vĩnh viễn. Hành động này không thể hoàn tác.
             </div>
           </div>

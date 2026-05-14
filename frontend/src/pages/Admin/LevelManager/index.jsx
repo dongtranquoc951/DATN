@@ -35,13 +35,16 @@ const http = {
 
 function Badge({ type, children }) {
   const styles = {
-    published: { background: "#F0FDF4", color: "#16A34A" },
-    draft:     { background: "#FFFBEB", color: "#D97706" },
+    published: "bg-green-50 text-green-600",
+    draft: "bg-amber-50 text-amber-600",
   };
-  const dots = { published: "#16A34A", draft: "#D97706" };
+  const dots = {
+    published: "bg-green-500",
+    draft: "bg-amber-500",
+  };
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5, fontWeight: 500, padding: "3px 9px", borderRadius: 20, ...styles[type] }}>
-      {dots[type] && <span style={{ width: 5, height: 5, borderRadius: "50%", background: dots[type] }} />}
+    <span className={`inline-flex items-center gap-1 text-[11.5px] font-medium px-2.5 py-0.5 rounded-full ${styles[type]}`}>
+      {dots[type] && <span className={`w-1.5 h-1.5 rounded-full ${dots[type]}`} />}
       {children}
     </span>
   );
@@ -50,20 +53,19 @@ function Badge({ type, children }) {
 function StarBar({ value, max = 3 }) {
   const v = parseFloat(value) || 0;
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-      <span style={{ fontSize: 12, color: "#F59E0B" }}>
+    <div className="flex items-center gap-1">
+      <span className="text-xs text-amber-400">
         {"★".repeat(Math.round(v))}{"☆".repeat(max - Math.round(v))}
       </span>
-      <span style={{ fontSize: 12, fontWeight: 600, color: "#1A1A18" }}>{v.toFixed(1)}</span>
+      <span className="text-xs font-semibold text-gray-900">{v.toFixed(1)}</span>
     </div>
   );
 }
 
 function Spinner() {
   return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 40 }}>
-      <div style={{ width: 28, height: 28, borderRadius: "50%", border: "3px solid #E8E8E4", borderTopColor: "#2563EB", animation: "spin 0.7s linear infinite" }} />
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    <div className="flex items-center justify-center p-10">
+      <div className="w-7 h-7 rounded-full border-[3px] border-gray-200 border-t-blue-600 animate-spin" />
     </div>
   );
 }
@@ -73,9 +75,15 @@ function Toast({ message, type, onClose }) {
     const t = setTimeout(onClose, 3000);
     return () => clearTimeout(t);
   }, [onClose]);
-  const colors = { success: "#166534", danger: "#991B1B", info: "#1A1A18" };
+
+  const colors = {
+    success: "bg-green-800",
+    danger: "bg-red-800",
+    info: "bg-gray-900",
+  };
+
   return (
-    <div style={{ position: "fixed", bottom: 24, right: 24, zIndex: 400, display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", background: colors[type] || colors.info, color: "white", borderRadius: 10, fontSize: 13, fontWeight: 500, boxShadow: "0 4px 16px rgba(0,0,0,0.15)", minWidth: 240, animation: "slideUp 0.2s ease" }}>
+    <div className={`fixed bottom-6 right-6 z-[400] flex items-center gap-2.5 px-4 py-3 ${colors[type] || colors.info} text-white rounded-xl text-[13px] font-medium shadow-lg min-w-[240px] animate-[slideUp_0.2s_ease]`}>
       <style>{`@keyframes slideUp { from{transform:translateY(10px);opacity:0} to{transform:translateY(0);opacity:1} }`}</style>
       {message}
     </div>
@@ -85,32 +93,49 @@ function Toast({ message, type, onClose }) {
 function Modal({ open, onClose, title, subtitle, footer, children, width = 640 }) {
   if (!open) return null;
   return (
-    <div onClick={(e) => e.target === e.currentTarget && onClose()} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.35)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}>
-      <div style={{ background: "white", borderRadius: 14, width, maxWidth: "calc(100vw - 40px)", maxHeight: "calc(100vh - 60px)", overflowY: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.15)" }}>
-        <div style={{ padding: "22px 24px 18px", borderBottom: "1px solid #E8E8E4", display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+    <div
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+      className="fixed inset-0 bg-black/35 backdrop-blur-sm flex items-center justify-center z-[200]"
+    >
+      <div
+        className="bg-white rounded-2xl overflow-y-auto shadow-2xl"
+        style={{ width, maxWidth: "calc(100vw - 40px)", maxHeight: "calc(100vh - 60px)" }}
+      >
+        <div className="px-6 pt-5 pb-4 border-b border-gray-100 flex items-start justify-between">
           <div>
-            <div style={{ fontSize: 16, fontWeight: 600, letterSpacing: "-0.01em" }}>{title}</div>
-            {subtitle && <div style={{ fontSize: 12.5, color: "#A8A89E", marginTop: 3 }}>{subtitle}</div>}
+            <div className="text-base font-semibold tracking-tight">{title}</div>
+            {subtitle && <div className="text-xs text-gray-400 mt-0.5">{subtitle}</div>}
           </div>
-          <button onClick={onClose} style={{ width: 28, height: 28, borderRadius: 6, border: "1px solid #E8E8E4", background: "transparent", cursor: "pointer", fontSize: 14, color: "#6B6B65" }}>✕</button>
+          <button
+            onClick={onClose}
+            className="w-7 h-7 rounded-md border border-gray-200 bg-transparent cursor-pointer text-sm text-gray-500 hover:bg-gray-50 transition-colors"
+          >
+            ✕
+          </button>
         </div>
-        <div style={{ padding: "20px 24px" }}>{children}</div>
-        {footer && <div style={{ padding: "16px 24px", borderTop: "1px solid #E8E8E4", display: "flex", gap: 8, justifyContent: "flex-end" }}>{footer}</div>}
+        <div className="px-6 py-5">{children}</div>
+        {footer && (
+          <div className="px-6 py-4 border-t border-gray-100 flex gap-2 justify-end">{footer}</div>
+        )}
       </div>
     </div>
   );
 }
 
-function Btn({ variant = "outline", onClick, children, disabled = false, style = {} }) {
+function Btn({ variant = "outline", onClick, children, disabled = false, className = "" }) {
   const vs = {
-    primary: { background: "#2563EB", color: "white", border: "1px solid #2563EB" },
-    outline: { background: "white", color: "#6B6B65", border: "1px solid #E8E8E4" },
-    ghost:   { background: "transparent", color: "#6B6B65", border: "1px solid transparent" },
-    danger:  { background: "#DC2626", color: "white", border: "1px solid #DC2626" },
-    success: { background: "#16A34A", color: "white", border: "1px solid #16A34A" },
+    primary: "bg-blue-600 text-white border border-blue-600 hover:bg-blue-700",
+    outline: "bg-white text-gray-500 border border-gray-200 hover:bg-gray-50",
+    ghost: "bg-transparent text-gray-500 border border-transparent hover:bg-gray-50",
+    danger: "bg-red-600 text-white border border-red-600 hover:bg-red-700",
+    success: "bg-green-600 text-white border border-green-600 hover:bg-green-700",
   };
   return (
-    <button onClick={onClick} disabled={disabled} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 6, fontSize: 13, fontFamily: "'DM Sans', sans-serif", fontWeight: 500, cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? 0.6 : 1, ...vs[variant], ...style }}>
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-md text-[13px] font-medium cursor-pointer transition-colors ${vs[variant]} ${disabled ? "opacity-60 cursor-not-allowed" : ""} ${className}`}
+    >
       {children}
     </button>
   );
@@ -119,44 +144,52 @@ function Btn({ variant = "outline", onClick, children, disabled = false, style =
 function GridPreview({ gridData }) {
   if (!gridData) return null;
   let gd = gridData;
-  try { if (typeof gd === "string") gd = JSON.parse(gd); } catch { return null; }
+  try {
+    if (typeof gd === "string") gd = JSON.parse(gd);
+  } catch {
+    return null;
+  }
   const { rows = 5, cols = 5, player, target, obstacles = [] } = gd;
   return (
     <div>
-      <div style={{ display: "inline-grid", gridTemplateColumns: `repeat(${cols}, 36px)`, gap: 2, background: "#F7F7F5", padding: 10, borderRadius: 8, border: "1px solid #E8E8E4" }}>
+      <div
+        className="inline-grid gap-0.5 bg-gray-50 p-2.5 rounded-lg border border-gray-200"
+        style={{ gridTemplateColumns: `repeat(${cols}, 36px)` }}
+      >
         {Array.from({ length: rows }, (_, r) =>
           Array.from({ length: cols }, (_, c) => {
-            const isPlayer   = player?.x === c && player?.y === r;
-            const isTarget   = target?.x === c && target?.y === r;
+            const isPlayer = player?.x === c && player?.y === r;
+            const isTarget = target?.x === c && target?.y === r;
             const isObstacle = obstacles?.some((o) => o.x === c && o.y === r);
             return (
-              <div key={`${r}-${c}`} style={{ width: 36, height: 36, borderRadius: 5, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 600, background: isObstacle ? "#374151" : isPlayer ? "#EFF4FF" : isTarget ? "#F0FDF4" : "white", border: `1px solid ${isObstacle ? "#1F2937" : isPlayer ? "#BFDBFE" : isTarget ? "#BBF7D0" : "#E8E8E4"}`, color: isObstacle ? "white" : isPlayer ? "#2563EB" : isTarget ? "#16A34A" : "transparent" }}>
+              <div
+                key={`${r}-${c}`}
+                className={`w-9 h-9 rounded-[5px] flex items-center justify-center text-[10px] font-semibold border
+                  ${isObstacle ? "bg-gray-700 border-gray-800 text-white"
+                    : isPlayer ? "bg-blue-50 border-blue-200 text-blue-600"
+                    : isTarget ? "bg-green-50 border-green-200 text-green-600"
+                    : "bg-white border-gray-200 text-transparent"}`}
+              >
                 {isPlayer ? "P" : isTarget ? "G" : isObstacle ? "X" : ""}
               </div>
             );
           })
         )}
       </div>
-      <div style={{ marginTop: 6, display: "flex", gap: 12, fontSize: 11.5, color: "#A8A89E" }}>
-        <span><span style={{ fontWeight: 600, color: "#2563EB" }}>P</span> Nhân vật</span>
-        <span><span style={{ fontWeight: 600, color: "#16A34A" }}>G</span> Đích</span>
-        <span><span style={{ fontWeight: 600, color: "#374151" }}>X</span> Chướng ngại</span>
+      <div className="mt-1.5 flex gap-3 text-[11.5px] text-gray-400">
+        <span><span className="font-semibold text-blue-600">P</span> Nhân vật</span>
+        <span><span className="font-semibold text-green-600">G</span> Đích</span>
+        <span><span className="font-semibold text-gray-700">X</span> Chướng ngại</span>
       </div>
     </div>
   );
 }
 
 function LevelDetailContent({ level }) {
-// 1. XỬ LÝ DATA: Giải mã grid_data và tìm object engine
   const getEngineData = () => {
     try {
-      // Parse lần 1
       let gData = typeof level.grid_data === "string" ? JSON.parse(level.grid_data) : level.grid_data;
-      
-      // Nếu sau khi parse vẫn là string (do double stringify), parse lần 2
       if (typeof gData === "string") gData = JSON.parse(gData);
-
-      // Lấy engine object từ gData
       return gData?.engine || {};
     } catch (e) {
       console.error("Lỗi parse dữ liệu:", e);
@@ -165,116 +198,92 @@ function LevelDetailContent({ level }) {
   };
 
   const engine = getEngineData();
-  
-  // Chuyển đổi object engine thành mảng để hiển thị (collectibles, obstacles, shadows...)
   const displayItems = [];
-  Object.keys(engine).forEach(key => {
+  Object.keys(engine).forEach((key) => {
     if (Array.isArray(engine[key])) {
       engine[key].forEach((item, index) => {
-        displayItems.push({
-          id: `${key}-${index}`,
-          type: key, // ví dụ: collectibles, obstacles
-          x: item.x,
-          y: item.y
-        });
+        displayItems.push({ id: `${key}-${index}`, type: key, x: item.x, y: item.y });
       });
     }
   });
 
-  // 2. Định nghĩa Style (Cần thiết cho phần hiển thị bảng)
-  const smallLabel = { 
-    fontSize: 10, 
-    fontWeight: 700, 
-    textTransform: "uppercase", 
-    color: "#A8A89E", 
-    letterSpacing: "0.04em" 
-  };
-
   return (
     <>
       {/* Thông tin cơ bản */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 18 }}>
+      <div className="grid grid-cols-2 gap-3 mb-4">
         {[
-          { label: "Level",       value: `#${level.level_number}`,                                     mono: true },
-          { label: "Trạng thái",  value: <Badge type={level.is_published ? "published" : "draft"}>{level.is_published ? "Đã xuất bản" : "Bản nháp"}</Badge> },
-          { label: "Ngày tạo",    value: new Date(level.created_at).toLocaleDateString("vi-VN"),         mono: true },
-          { label: "Cập nhật",    value: new Date(level.updated_at || level.created_at).toLocaleDateString("vi-VN"), mono: true },
+          { label: "Level", value: `#${level.level_number}`, mono: true },
+          { label: "Trạng thái", value: <Badge type={level.is_published ? "published" : "draft"}>{level.is_published ? "Đã xuất bản" : "Bản nháp"}</Badge> },
+          { label: "Ngày tạo", value: new Date(level.created_at).toLocaleDateString("vi-VN"), mono: true },
+          { label: "Cập nhật", value: new Date(level.updated_at || level.created_at).toLocaleDateString("vi-VN"), mono: true },
         ].map((item) => (
-          <div key={item.label} style={{ background: "#F7F7F5", borderRadius: 6, padding: "11px 14px" }}>
-            <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "#A8A89E", marginBottom: 5 }}>{item.label}</div>
-            <div style={{ fontSize: 13.5, fontWeight: 500, fontFamily: item.mono ? "'DM Mono', monospace" : undefined }}>{item.value}</div>
+          <div key={item.label} className="bg-gray-50 rounded-md px-3.5 py-2.5">
+            <div className="text-[10.5px] font-semibold tracking-widest uppercase text-gray-400 mb-1">{item.label}</div>
+            <div className={`text-[13.5px] font-medium ${item.mono ? "font-mono" : ""}`}>{item.value}</div>
           </div>
         ))}
       </div>
 
       {/* Chỉ số thống kê */}
       {level.stats && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10, marginBottom: 18 }}>
+        <div className="grid grid-cols-4 gap-2.5 mb-4">
           {[
-            { label: "Lượt thử",   value: level.stats.total_attempts || 0 },
+            { label: "Lượt thử", value: level.stats.total_attempts || 0 },
             { label: "Hoàn thành", value: level.stats.completions || 0 },
-            { label: "Sao TB",     value: <StarBar value={level.stats.avg_stars || 0} /> },
-            { label: "Bước TB",    value: level.stats.avg_steps || "—" },
+            { label: "Sao TB", value: <StarBar value={level.stats.avg_stars || 0} /> },
+            { label: "Bước TB", value: level.stats.avg_steps || "—" },
           ].map((s) => (
-            <div key={s.label} style={{ background: "#F7F7F5", borderRadius: 6, padding: "10px", textAlign: "center" }}>
-              <div style={{ fontSize: 16, fontWeight: 600, letterSpacing: "-0.02em", marginBottom: 2 }}>{s.value}</div>
-              <div style={{ fontSize: 11, color: "#A8A89E" }}>{s.label}</div>
+            <div key={s.label} className="bg-gray-50 rounded-md p-2.5 text-center">
+              <div className="text-base font-semibold tracking-tight mb-0.5">{s.value}</div>
+              <div className="text-[11px] text-gray-400">{s.label}</div>
             </div>
           ))}
         </div>
       )}
 
-      {/* PHẦN CẤU HÌNH CHI TIẾT ĐÃ ĐỒNG BỘ VỚI MODAL SỬA */}
-{/* HIỂN THỊ ENGINE DATA */}
-      <div style={{ marginBottom: 18 }}>
-        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>Thông số Engine (Entity & Thông số)</div>
-        
+      {/* Engine Data */}
+      <div className="mb-4">
+        <div className="text-[13px] font-semibold mb-2.5">Thông số Engine (Entity & Thông số)</div>
         {displayItems.length > 0 ? (
-          <div style={{ border: "1px solid #E8E8E4", borderRadius: 8, overflow: "hidden", background: "white" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "100px 1fr", gap: 8, padding: "10px 14px", background: "#F7F7F5", borderBottom: "1px solid #E8E8E4" }}>
-              <div style={smallLabel}>Loại</div>
-              <div style={smallLabel}>Tọa độ / Giá trị</div>
+          <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">
+            <div className="grid gap-2 px-3.5 py-2.5 bg-gray-50 border-b border-gray-200" style={{ gridTemplateColumns: "100px 1fr" }}>
+              <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Loại</div>
+              <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Tọa độ / Giá trị</div>
             </div>
-
             {displayItems.map((it, idx) => (
-              <div key={it.id} style={{ 
-                display: "grid", gridTemplateColumns: "100px 1fr", gap: 8, padding: "12px 14px", alignItems: "center",
-                borderBottom: idx === displayItems.length - 1 ? "none" : "1px solid #F0F0EE"
-              }}>
-                <div>
-                  <span style={{
-                    padding: "2px 8px", borderRadius: 4, fontSize: 10, fontWeight: 700,
-                    background: it.type === "collectibles" ? "#FEF3C7" : "#F3F4F6",
-                    color: it.type === "collectibles" ? "#B45309" : "#374151",
-                    textTransform: "capitalize"
-                  }}>
-                    {it.type}
-                  </span>
-                </div>
-                <div style={{ fontSize: 12.5, fontWeight: 600, color: "#1A1A18" }}>
+              <div
+                key={it.id}
+                className={`grid gap-2 px-3.5 py-3 items-center ${idx !== displayItems.length - 1 ? "border-b border-gray-100" : ""}`}
+                style={{ gridTemplateColumns: "100px 1fr" }}
+              >
+                <span className={`px-2 py-0.5 rounded text-[10px] font-bold capitalize w-fit
+                  ${it.type === "collectibles" ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-700"}`}>
+                  {it.type}
+                </span>
+                <div className="text-[12.5px] font-semibold text-gray-900">
                   x: <b>{it.x}</b>, y: <b>{it.y}</b>
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <div style={{ padding: "20px", textAlign: "center", background: "#F7F7F5", borderRadius: 8, border: "1px dashed #D1D5DB", color: "#A8A89E", fontSize: 12 }}>
+          <div className="px-5 py-5 text-center bg-gray-50 rounded-lg border border-dashed border-gray-300 text-gray-400 text-xs">
             Không tìm thấy dữ liệu trong object "engine".
           </div>
         )}
       </div>
 
-      {/* Xem trước bản đồ */}
-      <div style={{ marginBottom: 18 }}>
-        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>Xem trước lưới</div>
+      {/* Grid Preview */}
+      <div className="mb-4">
+        <div className="text-[13px] font-semibold mb-2.5">Xem trước lưới</div>
         <GridPreview gridData={level.grid_data} />
       </div>
 
       {/* Code khởi đầu */}
       {level.initial_code && (
-        <div style={{ marginBottom: 18 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Code khởi đầu</div>
-          <pre style={{ background: "#1E1E2E", color: "#CDD6F4", borderRadius: 8, padding: "14px 16px", fontSize: 12.5, fontFamily: "'DM Mono', monospace", lineHeight: 1.6, margin: 0, overflowX: "auto", whiteSpace: "pre-wrap" }}>
+        <div className="mb-4">
+          <div className="text-[13px] font-semibold mb-2">Code khởi đầu</div>
+          <pre className="bg-[#1E1E2E] text-[#CDD6F4] rounded-lg px-4 py-3.5 text-[12.5px] font-mono leading-relaxed m-0 overflow-x-auto whitespace-pre-wrap">
             {level.initial_code}
           </pre>
         </div>
@@ -282,30 +291,34 @@ function LevelDetailContent({ level }) {
 
       {/* Mô tả */}
       {level.description && (
-        <div style={{ background: "#F7F7F5", borderRadius: 6, padding: "12px 14px", marginBottom: 18 }}>
-          <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "#A8A89E", marginBottom: 5 }}>Mô tả</div>
-          <div style={{ fontSize: 13.5, lineHeight: 1.6 }}>{level.description}</div>
+        <div className="bg-gray-50 rounded-md px-3.5 py-3 mb-4">
+          <div className="text-[10.5px] font-semibold tracking-widest uppercase text-gray-400 mb-1">Mô tả</div>
+          <div className="text-[13.5px] leading-relaxed">{level.description}</div>
         </div>
       )}
 
-      {/* Bảng xếp hạng */}
+      {/* Top players */}
       {level.top_players?.length > 0 && (
         <div>
-          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>Top người chơi</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <div className="text-[13px] font-semibold mb-2.5">Top người chơi</div>
+          <div className="flex flex-col gap-1.5">
             {level.top_players.map((p, idx) => (
-              <div key={p.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: idx === 0 ? "#FFFBEB" : "#F7F7F5", borderRadius: 6, border: `1px solid ${idx === 0 ? "#FDE68A" : "#E8E8E4"}` }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: "#A8A89E", fontFamily: "'DM Mono', monospace", minWidth: 18 }}>#{idx + 1}</span>
+              <div
+                key={p.id}
+                className={`flex items-center justify-between px-3.5 py-2.5 rounded-md border
+                  ${idx === 0 ? "bg-amber-50 border-amber-200" : "bg-gray-50 border-gray-200"}`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <span className="text-xs font-bold text-gray-400 font-mono w-4">#{idx + 1}</span>
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 500 }}>{p.full_name || p.username}</div>
-                    <div style={{ fontSize: 11.5, color: "#A8A89E" }}>@{p.username}</div>
+                    <div className="text-[13px] font-medium">{p.full_name || p.username}</div>
+                    <div className="text-[11.5px] text-gray-400">@{p.username}</div>
                   </div>
                 </div>
-                <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+                <div className="flex gap-3.5 items-center">
                   <StarBar value={p.stars} />
-                  <div style={{ textAlign: "right", fontSize: 12, color: "#6B6B65" }}>
-                    <div><span style={{ fontFamily: "'DM Mono', monospace" }}>{p.best_steps}</span> bước</div>
+                  <div className="text-right text-xs text-gray-500">
+                    <div><span className="font-mono">{p.best_steps}</span> bước</div>
                     <div>{p.attempts} lần thử</div>
                   </div>
                 </div>
@@ -317,40 +330,27 @@ function LevelDetailContent({ level }) {
     </>
   );
 }
+
 const EMPTY_FORM = {
   title: "", level_number: "", description: "", initial_code: "",
   is_published: false, grid_rows: 5, grid_cols: 5,
   player_x: 0, player_y: 2, target_x: 4, target_y: 2,
 };
 
-// ── Danh sách thông số engine có thể dùng ────────────────────────────────────
-// Khi thêm level, tham khảo bảng này để điền vào phần "Thông số tùy chỉnh".
-// Key             | Kiểu    | Mặc định | Mô tả
-// ─────────────────────────────────────────────────────────────────────────────
-// max_steps       | number  | 50       | Số bước tối đa người chơi được đi
-// gravity         | boolean | false    | Bật vật lý trọng lực
-// fog_of_war      | boolean | false    | Ẩn các ô chưa khám phá
-// move_mode       | string  | "4dir"   | "4dir" = 4 hướng, "8dir" = 8 hướng
-// time_limit      | number  | 0        | Giới hạn thời gian (giây), 0 = không giới hạn
-// wind_direction  | string  | ""       | Hướng gió ảnh hưởng di chuyển: "N","S","E","W"
-// ice_tiles       | boolean | false    | Ô băng: nhân vật trượt thêm 1 bước
-// teleport_pairs  | string  | ""       | JSON array các cặp teleport [{"from":{x,y},"to":{x,y}}]
-// ─────────────────────────────────────────────────────────────────────────────
-
 export default function LevelManager() {
-  const [levels, setLevels]         = useState([]);
-  const [stats, setStats]           = useState(null);
+  const [levels, setLevels] = useState([]);
+  const [stats, setStats] = useState(null);
   const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 10, totalPages: 1 });
-  const [search, setSearch]         = useState("");
-  const [filter, setFilter]         = useState("all");
-  const [loading, setLoading]       = useState(false);
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState("all");
+  const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
-  const [detailLevel, setDetailLevel]     = useState(null);
+  const [detailLevel, setDetailLevel] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
-  const [deleteTarget, setDeleteTarget]   = useState(null);
-  const [createOpen, setCreateOpen]       = useState(false);
-  const [createSaving, setCreateSaving]   = useState(false);
-  const [toast, setToast]           = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createSaving, setCreateSaving] = useState(false);
+  const [toast, setToast] = useState(null);
   const [searchDebounced, setSearchDebounced] = useState("");
   const [editingLevel, setEditingLevel] = useState(null);
 
@@ -438,52 +438,38 @@ export default function LevelManager() {
     }
   };
 
-const handleUpdate = async (formData) => {
-  if (!editingLevel?.id) return;
-  setActionLoading(true);
+  const handleUpdate = async (formData) => {
+    if (!editingLevel?.id) return;
+    setActionLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      const cleanApi = API.endsWith("/") ? API.slice(0, -1) : API;
+      const url = `${cleanApi}/levels/${editingLevel.id}`;
+      console.log("🚀 Gọi API Update:", url);
 
-  try {
-    const token = localStorage.getItem("token");
-    
-    // Sử dụng URL object để tránh lỗi dư/thiếu dấu gạch chéo
-    // Đảm bảo API của bạn là http://localhost:5000/api/admin
-    const cleanApi = API.endsWith('/') ? API.slice(0, -1) : API;
-    const url = `${cleanApi}/levels/${editingLevel.id}`;
-    
-    console.log("🚀 Gọi API Update:", url);
+      const res = await fetch(url, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(formData),
+      });
 
-    const res = await fetch(url, {
-      method: "PUT", // ĐÚNG với router.put trong admin.routes.js
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`
-      },
-      body: JSON.stringify(formData)
-    });
+      const result = await res.json();
+      if (!res.ok) {
+        console.error("❌ Backend error:", result);
+        throw new Error(result.message || "Không thể cập nhật level");
+      }
 
-    const result = await res.json();
-
-    if (!res.ok) {
-      // Log lỗi cụ thể từ Backend trả về
-      console.error("❌ Backend error:", result);
-      throw new Error(result.message || "Không thể cập nhật level");
+      showToast(result.message || "Cập nhật thành công!", "success");
+      setCreateOpen(false);
+      setEditingLevel(null);
+      if (typeof fetchLevels === "function") fetchLevels(pagination.page);
+    } catch (err) {
+      console.error("🔥 Lỗi handleUpdate:", err);
+      showToast(err.message, "danger");
+    } finally {
+      setActionLoading(false);
     }
-
-    // ✅ Thành công
-    showToast(result.message || "Cập nhật thành công!", "success");
-    setCreateOpen(false);
-    setEditingLevel(null);
-    
-    // Reload danh sách
-    if (typeof fetchLevels === "function") fetchLevels(pagination.page);
-
-  } catch (err) {
-    console.error("🔥 Lỗi handleUpdate:", err);
-    showToast(err.message, "danger");
-  } finally {
-    setActionLoading(false);
-  }
-};
+  };
 
   const showToast = (message, type = "info") => setToast({ message, type });
 
@@ -493,78 +479,91 @@ const handleUpdate = async (formData) => {
   };
 
   const FILTERS = [
-    { key: "all",       label: "Tất cả" },
+    { key: "all", label: "Tất cả" },
     { key: "published", label: "Đã xuất bản" },
-    { key: "draft",     label: "Bản nháp" },
+    { key: "draft", label: "Bản nháp" },
   ];
 
-  const btnStyle = () => ({
-    display: "inline-flex", alignItems: "center", justifyContent: "center",
-    width: 30, height: 30, borderRadius: 6, border: "1px solid #E8E8E4",
-    background: "white", cursor: "pointer", fontSize: 11, fontWeight: 500,
-    color: "#6B6B65", fontFamily: "'DM Sans', sans-serif",
-  });
-
   return (
-    <div style={{ fontFamily: "'DM Sans', sans-serif" }}>
+    <div className="font-sans">
       {/* Topbar */}
-      <div style={{ background: "white", borderBottom: "1px solid #E8E8E4", padding: "0 32px", height: 60, display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 50 }}>
+      <div className="bg-white border-b border-gray-200 px-8 h-[60px] flex items-center justify-between sticky top-0 z-50">
         <div>
-          <div style={{ fontSize: 15, fontWeight: 600, letterSpacing: "-0.01em" }}>Quản lý cấp độ học</div>
-          <div style={{ fontSize: 12, color: "#A8A89E", marginTop: 1 }}>Admin / Learning Levels</div>
+          <div className="text-[15px] font-semibold tracking-tight">Quản lý cấp độ học</div>
+          <div className="text-xs text-gray-400 mt-0.5">Admin / Learning Levels</div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#F7F7F5", border: "1px solid #E8E8E4", borderRadius: 6, padding: "7px 12px", width: 240 }}>
-            <svg width="13" height="13" fill="none" stroke="#A8A89E" strokeWidth="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Tìm tên, mô tả..." style={{ border: "none", background: "transparent", fontSize: 13, fontFamily: "'DM Sans', sans-serif", color: "#1A1A18", outline: "none", width: "100%" }} />
+        <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-md px-3 py-[7px] w-60">
+            <svg width="13" height="13" fill="none" stroke="#9CA3AF" strokeWidth="2" viewBox="0 0 24 24">
+              <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Tìm tên, mô tả..."
+              className="border-none bg-transparent text-[13px] text-gray-900 outline-none w-full placeholder:text-gray-400"
+            />
           </div>
           <Btn variant="primary" onClick={() => setCreateOpen(true)}>+ Thêm cấp độ</Btn>
         </div>
       </div>
 
       {/* Content */}
-      <div style={{ padding: "28px 32px" }}>
+      <div className="px-8 py-7">
         {/* Stats */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, marginBottom: 24 }}>
+        <div className="grid grid-cols-4 gap-3.5 mb-6">
           {[
-            { label: "Tổng cấp độ",     value: stats?.total_levels,          badge: "Lộ trình học",  color: "#EFF4FF" },
-            { label: "Đã xuất bản",     value: stats?.published_levels,      badge: "Hoạt động",     color: "#F0FDF4" },
-            { label: "Bản nháp",        value: stats?.draft_levels,          badge: "Chờ duyệt",     color: "#FFFBEB" },
-            { label: "Tổng hoàn thành", value: (stats?.total_completions || 0).toLocaleString(), badge: "Người chơi", color: "#F0FDF4" },
+            { label: "Tổng cấp độ", value: stats?.total_levels, badge: "Lộ trình học", iconBg: "bg-blue-50" },
+            { label: "Đã xuất bản", value: stats?.published_levels, badge: "Hoạt động", iconBg: "bg-green-50" },
+            { label: "Bản nháp", value: stats?.draft_levels, badge: "Chờ duyệt", iconBg: "bg-amber-50" },
+            { label: "Tổng hoàn thành", value: (stats?.total_completions || 0).toLocaleString(), badge: "Người chơi", iconBg: "bg-green-50" },
           ].map((s) => (
-            <div key={s.label} style={{ background: "white", border: "1px solid #E8E8E4", borderRadius: 10, padding: "18px 20px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-                <div style={{ width: 34, height: 34, borderRadius: 8, background: s.color }} />
-                <span style={{ fontSize: 11, fontWeight: 500, padding: "3px 8px", borderRadius: 20, background: "#F0FDF4", color: "#16A34A" }}>{s.badge}</span>
+            <div key={s.label} className="bg-white border border-gray-200 rounded-xl px-5 py-4 shadow-sm">
+              <div className="flex items-center justify-between mb-3">
+                <div className={`w-9 h-9 rounded-lg ${s.iconBg}`} />
+                <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-green-50 text-green-600">{s.badge}</span>
               </div>
-              <div style={{ fontSize: 26, fontWeight: 600, letterSpacing: "-0.03em", lineHeight: 1, marginBottom: 4 }}>{s.value ?? "—"}</div>
-              <div style={{ fontSize: 12.5, color: "#A8A89E" }}>{s.label}</div>
+              <div className="text-[26px] font-semibold tracking-tight leading-none mb-1">{s.value ?? "—"}</div>
+              <div className="text-[12.5px] text-gray-400">{s.label}</div>
             </div>
           ))}
         </div>
 
         {/* Table header */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+        <div className="flex items-center justify-between mb-4">
           <div>
-            <div style={{ fontSize: 14, fontWeight: 600 }}>Danh sách cấp độ</div>
-            <div style={{ fontSize: 12, color: "#A8A89E", marginTop: 2 }}>
+            <div className="text-sm font-semibold">Danh sách cấp độ</div>
+            <div className="text-xs text-gray-400 mt-0.5">
               {pagination.total} levels · Trang {pagination.page}/{pagination.totalPages}
             </div>
           </div>
-          <div style={{ display: "flex", background: "#F7F7F5", border: "1px solid #E8E8E4", borderRadius: 6, padding: 3, gap: 2 }}>
+          <div className="flex bg-gray-50 border border-gray-200 rounded-md p-0.5 gap-0.5">
             {FILTERS.map((f) => (
-              <button key={f.key} onClick={() => setFilter(f.key)} style={{ padding: "5px 12px", fontSize: 12.5, fontWeight: 500, borderRadius: 4, cursor: "pointer", border: "none", fontFamily: "'DM Sans', sans-serif", background: filter === f.key ? "white" : "transparent", color: filter === f.key ? "#1A1A18" : "#6B6B65", boxShadow: filter === f.key ? "0 1px 3px rgba(0,0,0,0.06)" : "none", transition: "all 0.15s" }}>{f.label}</button>
+              <button
+                key={f.key}
+                onClick={() => setFilter(f.key)}
+                className={`px-3 py-1 text-[12.5px] font-medium rounded cursor-pointer border-none transition-all
+                  ${filter === f.key ? "bg-white text-gray-900 shadow-sm" : "bg-transparent text-gray-500"}`}
+              >
+                {f.label}
+              </button>
             ))}
           </div>
         </div>
 
         {/* Table */}
-        <div style={{ background: "white", border: "1px solid #E8E8E4", borderRadius: 10, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", overflow: "hidden" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead style={{ background: "#F7F7F5", borderBottom: "1px solid #E8E8E4" }}>
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+          <table className="w-full border-collapse">
+            <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 {["Cấp độ / Tên", "Trạng thái", "Sao TB", "Lượt thử", "Hoàn thành", "Ngày tạo", "Thao tác"].map((h, i) => (
-                  <th key={h} style={{ padding: "11px 16px", textAlign: i === 6 ? "right" : "left", fontSize: 11.5, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", color: "#A8A89E", paddingLeft: i === 0 ? 20 : 16, paddingRight: i === 6 ? 20 : 16 }}>{h}</th>
+                  <th
+                    key={h}
+                    className={`py-2.5 text-[11.5px] font-semibold tracking-widest uppercase text-gray-400
+                      ${i === 6 ? "text-right pr-5 pl-4" : "text-left"} ${i === 0 ? "pl-5 pr-4" : "px-4"}`}
+                  >
+                    {h}
+                  </th>
                 ))}
               </tr>
             </thead>
@@ -572,70 +571,98 @@ const handleUpdate = async (formData) => {
               {loading ? (
                 <tr><td colSpan={7}><Spinner /></td></tr>
               ) : levels.length === 0 ? (
-                <tr><td colSpan={7} style={{ textAlign: "center", padding: 32, color: "#A8A89E", fontSize: 13 }}>Không tìm thấy cấp độ nào</td></tr>
+                <tr>
+                  <td colSpan={7} className="text-center py-8 text-gray-400 text-[13px]">Không tìm thấy cấp độ nào</td>
+                </tr>
               ) : levels.map((l) => {
                 const rate = completionRate(l);
                 return (
-                  <tr key={l.id} style={{ borderBottom: "1px solid #E8E8E4" }}>
-                    <td style={{ padding: "14px 16px", paddingLeft: 20 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <div style={{ width: 36, height: 36, borderRadius: 8, background: l.is_published ? "#EFF4FF" : "#F7F7F5", border: `1px solid ${l.is_published ? "#BFDBFE" : "#E8E8E4"}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                          <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 13, fontWeight: 700, color: l.is_published ? "#2563EB" : "#A8A89E" }}>{l.level_number}</span>
+                  <tr key={l.id} className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors">
+                    <td className="py-3.5 pl-5 pr-4">
+                      <div className="flex items-center gap-2.5">
+                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 border
+                          ${l.is_published ? "bg-blue-50 border-blue-200" : "bg-gray-50 border-gray-200"}`}>
+                          <span className={`font-mono text-[13px] font-bold ${l.is_published ? "text-blue-600" : "text-gray-400"}`}>
+                            {l.level_number}
+                          </span>
                         </div>
                         <div>
-                          <div style={{ fontWeight: 500, fontSize: 13.5 }}>{l.title}</div>
+                          <div className="font-medium text-[13.5px]">{l.title}</div>
                           {l.description && (
-                            <div style={{ fontSize: 11.5, color: "#A8A89E", marginTop: 2, maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            <div className="text-[11.5px] text-gray-400 mt-0.5 max-w-[220px] truncate">
                               {l.description}
                             </div>
                           )}
                         </div>
                       </div>
                     </td>
-                    <td style={{ padding: "14px 16px" }}>
+                    <td className="py-3.5 px-4">
                       <Badge type={l.is_published ? "published" : "draft"}>{l.is_published ? "Xuất bản" : "Bản nháp"}</Badge>
                     </td>
-                    <td style={{ padding: "14px 16px" }}>
+                    <td className="py-3.5 px-4">
                       <StarBar value={l.avg_stars || 0} />
                     </td>
-                    <td style={{ padding: "14px 16px" }}>
-                      <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 12.5, color: "#6B6B65" }}>{(l.total_attempts || 0).toLocaleString()}</span>
+                    <td className="py-3.5 px-4">
+                      <span className="font-mono text-[12.5px] text-gray-500">{(l.total_attempts || 0).toLocaleString()}</span>
                     </td>
-                    <td style={{ padding: "14px 16px" }}>
+                    <td className="py-3.5 px-4">
                       {rate !== null ? (
                         <div>
-                          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-                            <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 12.5, fontWeight: 600, color: rate >= 70 ? "#16A34A" : rate >= 40 ? "#D97706" : "#DC2626" }}>{rate}%</span>
-                            <span style={{ fontSize: 11.5, color: "#A8A89E" }}>{l.total_completions || 0} người</span>
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <span className={`font-mono text-[12.5px] font-semibold
+                              ${rate >= 70 ? "text-green-600" : rate >= 40 ? "text-amber-600" : "text-red-600"}`}>
+                              {rate}%
+                            </span>
+                            <span className="text-[11.5px] text-gray-400">{l.total_completions || 0} người</span>
                           </div>
-                          <div style={{ width: 80, height: 4, background: "#E8E8E4", borderRadius: 2, overflow: "hidden" }}>
-                            <div style={{ width: `${rate}%`, height: "100%", background: rate >= 70 ? "#16A34A" : rate >= 40 ? "#F59E0B" : "#DC2626", borderRadius: 2, transition: "width 0.3s" }} />
+                          <div className="w-20 h-1 bg-gray-200 rounded-sm overflow-hidden">
+                            <div
+                              className={`h-full rounded-sm transition-all duration-300
+                                ${rate >= 70 ? "bg-green-500" : rate >= 40 ? "bg-amber-400" : "bg-red-500"}`}
+                              style={{ width: `${rate}%` }}
+                            />
                           </div>
                         </div>
                       ) : (
-                        <span style={{ fontSize: 12, color: "#A8A89E" }}>Chưa có</span>
+                        <span className="text-xs text-gray-400">Chưa có</span>
                       )}
                     </td>
-                    <td style={{ padding: "14px 16px" }}>
-                      <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 12.5, color: "#6B6B65" }}>{new Date(l.created_at).toLocaleDateString("vi-VN")}</span>
+                    <td className="py-3.5 px-4">
+                      <span className="font-mono text-[12.5px] text-gray-500">
+                        {new Date(l.created_at).toLocaleDateString("vi-VN")}
+                      </span>
                     </td>
-                    <td style={{ padding: "14px 20px 14px 16px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 4, justifyContent: "flex-end" }}>
-                        <button style={btnStyle()} title="Xem chi tiết" onClick={() => openDetail(l)}>Chi tiết</button>
-                        <button 
-                          style={btnStyle()} 
-                          title="Sửa" 
-                          onClick={() => {
-                            setEditingLevel(l); // 1. Lưu dữ liệu level này lại
-                            setCreateOpen(true);    // 2. Mở modal
-                          }}
+                    <td className="py-3.5 pl-4 pr-5">
+                      <div className="flex items-center gap-1 justify-end">
+                        <button
+                          className="inline-flex items-center justify-center h-[30px] px-2.5 rounded-md border border-gray-200 bg-white cursor-pointer text-[11px] font-medium text-gray-500 hover:bg-gray-50 transition-colors"
+                          title="Xem chi tiết"
+                          onClick={() => openDetail(l)}
+                        >
+                          Chi tiết
+                        </button>
+                        <button
+                          className="inline-flex items-center justify-center h-[30px] px-2.5 rounded-md border border-gray-200 bg-white cursor-pointer text-[11px] font-medium text-gray-500 hover:bg-gray-50 transition-colors"
+                          title="Sửa"
+                          onClick={() => { setEditingLevel(l); setCreateOpen(true); }}
                         >
                           Sửa
                         </button>
-                        <button style={{ ...btnStyle(), color: l.is_published ? "#D97706" : "#16A34A", borderColor: l.is_published ? "#FDE68A" : "#BBF7D0", background: l.is_published ? "#FFFBEB" : "#F0FDF4" }} onClick={() => togglePublish(l)}>
+                        <button
+                          className={`inline-flex items-center justify-center h-[30px] px-2.5 rounded-md border cursor-pointer text-[11px] font-medium transition-colors
+                            ${l.is_published
+                              ? "text-amber-600 border-amber-200 bg-amber-50 hover:bg-amber-100"
+                              : "text-green-600 border-green-200 bg-green-50 hover:bg-green-100"}`}
+                          onClick={() => togglePublish(l)}
+                        >
                           {l.is_published ? "Ẩn" : "Xuất bản"}
                         </button>
-                        <button style={{ ...btnStyle(), color: "#DC2626", borderColor: "#FECACA", background: "#FEF2F2" }} onClick={() => setDeleteTarget(l)}>Xóa</button>
+                        <button
+                          className="inline-flex items-center justify-center h-[30px] px-2.5 rounded-md border border-red-200 bg-red-50 cursor-pointer text-[11px] font-medium text-red-600 hover:bg-red-100 transition-colors"
+                          onClick={() => setDeleteTarget(l)}
+                        >
+                          Xóa
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -645,16 +672,35 @@ const handleUpdate = async (formData) => {
           </table>
 
           {/* Pagination */}
-          <div style={{ padding: "12px 20px", borderTop: "1px solid #E8E8E4", display: "flex", alignItems: "center", justifyContent: "space-between", background: "#F7F7F5" }}>
-            <div style={{ fontSize: 12.5, color: "#A8A89E" }}>Hiển thị {levels.length} / {pagination.total} cấp độ</div>
-            <div style={{ display: "flex", gap: 4 }}>
-              <button onClick={() => fetchLevels(pagination.page - 1)} disabled={pagination.page <= 1} style={{ width: 28, height: 28, borderRadius: 6, border: "1px solid #E8E8E4", background: "white", fontSize: 12.5, cursor: pagination.page <= 1 ? "not-allowed" : "pointer", color: "#6B6B65", opacity: pagination.page <= 1 ? 0.4 : 1 }}>‹</button>
+          <div className="px-5 py-3 border-t border-gray-200 flex items-center justify-between bg-gray-50">
+            <div className="text-[12.5px] text-gray-400">Hiển thị {levels.length} / {pagination.total} cấp độ</div>
+            <div className="flex gap-1">
+              <button
+                onClick={() => fetchLevels(pagination.page - 1)}
+                disabled={pagination.page <= 1}
+                className="w-7 h-7 rounded-md border border-gray-200 bg-white text-[12.5px] cursor-pointer text-gray-500 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                ‹
+              </button>
               {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
                 .slice(Math.max(0, pagination.page - 2), Math.min(pagination.totalPages, pagination.page + 1))
                 .map((p) => (
-                  <button key={p} onClick={() => fetchLevels(p)} style={{ width: 28, height: 28, borderRadius: 6, border: "1px solid #E8E8E4", background: p === pagination.page ? "#2563EB" : "white", fontSize: 12.5, cursor: "pointer", color: p === pagination.page ? "white" : "#6B6B65", fontFamily: "'DM Sans', sans-serif" }}>{p}</button>
+                  <button
+                    key={p}
+                    onClick={() => fetchLevels(p)}
+                    className={`w-7 h-7 rounded-md border border-gray-200 text-[12.5px] cursor-pointer transition-colors
+                      ${p === pagination.page ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-500 hover:bg-gray-50"}`}
+                  >
+                    {p}
+                  </button>
                 ))}
-              <button onClick={() => fetchLevels(pagination.page + 1)} disabled={pagination.page >= pagination.totalPages} style={{ width: 28, height: 28, borderRadius: 6, border: "1px solid #E8E8E4", background: "white", fontSize: 12.5, cursor: pagination.page >= pagination.totalPages ? "not-allowed" : "pointer", color: "#6B6B65", opacity: pagination.page >= pagination.totalPages ? 0.4 : 1 }}>›</button>
+              <button
+                onClick={() => fetchLevels(pagination.page + 1)}
+                disabled={pagination.page >= pagination.totalPages}
+                className="w-7 h-7 rounded-md border border-gray-200 bg-white text-[12.5px] cursor-pointer text-gray-500 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                ›
+              </button>
             </div>
           </div>
         </div>
@@ -669,7 +715,10 @@ const handleUpdate = async (formData) => {
         footer={
           <>
             <Btn variant="ghost" onClick={() => setDetailLevel(null)}>Đóng</Btn>
-            <Btn variant={detailLevel?.is_published ? "outline" : "success"} onClick={() => { togglePublish(detailLevel); setDetailLevel(null); }}>
+            <Btn
+              variant={detailLevel?.is_published ? "outline" : "success"}
+              onClick={() => { togglePublish(detailLevel); setDetailLevel(null); }}
+            >
               {detailLevel?.is_published ? "Ẩn level" : "Xuất bản"}
             </Btn>
           </>
@@ -695,11 +744,11 @@ const handleUpdate = async (formData) => {
         }
       >
         {deleteTarget && (
-          <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10, padding: 16 }}>
-            <div style={{ fontSize: 14, fontWeight: 600, color: "#DC2626", marginBottom: 6 }}>
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+            <div className="text-sm font-semibold text-red-600 mb-1.5">
               Xóa Level {deleteTarget.level_number} — "{deleteTarget.title}"?
             </div>
-            <div style={{ fontSize: 12.5, color: "#9B1C1C", lineHeight: 1.6 }}>
+            <div className="text-[12.5px] text-red-800 leading-relaxed">
               Toàn bộ tiến độ học tập ({deleteTarget.total_attempts || 0} lượt thử,{" "}
               {deleteTarget.total_completions || 0} người hoàn thành) sẽ bị xóa vĩnh viễn.
             </div>
@@ -707,15 +756,15 @@ const handleUpdate = async (formData) => {
         )}
       </Modal>
 
-      {/* Add Level Modal */}
+      {/* Add / Edit Level Modal */}
       <AddLevelModal
         open={createOpen}
-        initialData={editingLevel} // Truyền level đang sửa vào đây
+        initialData={editingLevel}
         onClose={() => {
           setCreateOpen(false);
-          setEditingLevel(null);   // Quan trọng: Reset về null khi đóng để lần sau bấm "Thêm mới" không bị dính dữ liệu cũ
+          setEditingLevel(null);
         }}
-        onSave={editingLevel ? handleUpdate : handleCreate} // Tự động chọn hàm Lưu hoặc Tạo mới
+        onSave={editingLevel ? handleUpdate : handleCreate}
         saving={actionLoading}
       />
 

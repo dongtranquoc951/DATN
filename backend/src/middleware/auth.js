@@ -34,6 +34,9 @@ const authMiddleware = (req, res, next) => {
 
 // Middleware kiểm tra role admin
 const adminMiddleware = (req, res, next) => {
+  if (!req.user) {                                          // ← thêm dòng này
+    return res.status(401).json({ error: 'Chưa xác thực' });
+  }
   if (req.user.role !== 'admin') {
     return res.status(403).json({ error: 'Không có quyền truy cập' });
   }

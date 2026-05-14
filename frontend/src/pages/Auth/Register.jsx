@@ -1,29 +1,22 @@
 import { useState } from "react";
 
 const API_BASE_URL = "http://localhost:5000/api";
+
 export default function Register() {
   const [formData, setFormData] = useState({
     username: "",
     email: "",
     password: "",
-    confirmPassword: ""
+    confirmPassword: "",
   });
-  
+
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value
-    });
-    if (errors[name]) {
-      setErrors({
-        ...errors,
-        [name]: ""
-      });
-    }
+    setFormData({ ...formData, [name]: value });
+    if (errors[name]) setErrors({ ...errors, [name]: "" });
   };
 
   const validateForm = () => {
@@ -67,127 +60,74 @@ export default function Register() {
 
   const handleRegister = async (e) => {
     e.preventDefault();
-
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
 
     setIsLoading(true);
-
     try {
       const response = await fetch(`${API_BASE_URL}/auth/register`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           username: formData.username,
           email: formData.email,
           password: formData.password,
-          full_name: formData.full_name || null
-        })
+          full_name: formData.full_name || null,
+        }),
       });
 
       const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Đăng ký thất bại");
 
-      if (!response.ok) {
-        throw new Error(data.error || "Đăng ký thất bại");
-      }
-
-      // Lưu token và user info vào localStorage
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      
-      window.location.href = '/learning';
-      
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+      window.location.href = "/learning";
     } catch (err) {
-      setErrors({
-        submit: err.message || "Đăng ký thất bại. Vui lòng thử lại!"
-      });
+      setErrors({ submit: err.message || "Đăng ký thất bại. Vui lòng thử lại!" });
     } finally {
       setIsLoading(false);
     }
   };
 
+  const inputClass = (field) =>
+    `w-full px-4 py-3 border-2 rounded-xl text-base focus:outline-none transition-colors ${
+      errors[field]
+        ? "border-red-400 focus:border-red-500"
+        : "border-gray-200 focus:border-indigo-500"
+    }`;
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      padding: '20px'
-    }}>
-      <div className="card" style={{
-        maxWidth: '480px',
-        width: '100%',
-        padding: '2.5rem',
-        background: 'white',
-        borderRadius: '20px',
-        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)'
-      }}>
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🎮</div>
-          <h2 style={{ 
-            fontSize: '2rem', 
-            fontWeight: '700', 
-            color: '#1a202c', 
-            marginBottom: '0.5rem' 
-          }}>
-            Đăng ký tài khoản
-          </h2>
-          <p style={{ color: '#718096', fontSize: '1rem' }}>
-            Tạo tài khoản để bắt đầu học lập trình!
-          </p>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600 p-5">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-10">
+
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="text-5xl mb-4">🎮</div>
+          <h2 className="text-3xl font-bold text-gray-900 mb-1">Đăng ký tài khoản</h2>
+          <p className="text-gray-500">Tạo tài khoản để bắt đầu học lập trình!</p>
         </div>
 
-        <div>
+        <div className="space-y-5">
           {/* Username */}
-          <div style={{ marginBottom: '1.25rem' }}>
-            <label style={{ 
-              display: 'block', 
-              fontSize: '0.9375rem', 
-              fontWeight: '600', 
-              color: '#4a5568', 
-              marginBottom: '0.5rem' 
-            }}>
+          <div>
+            <label className="block text-sm font-semibold text-gray-600 mb-2">
               Tên người dùng
             </label>
             <input
               type="text"
               name="username"
-              placeholder="johndoe123"
+              placeholder="username"
               value={formData.username}
               onChange={handleChange}
-              style={{
-                width: '100%',
-                padding: '0.875rem 1rem',
-                border: `2px solid ${errors.username ? '#ef4444' : '#e2e8f0'}`,
-                borderRadius: '10px',
-                fontSize: '1rem',
-                outline: 'none',
-                transition: 'all 0.2s',
-                backgroundColor: '#ffffff',
-                boxSizing: 'border-box'
-              }}
+              className={inputClass("username")}
             />
             {errors.username && (
-              <p style={{ color: '#ef4444', fontSize: '0.875rem', marginTop: '0.375rem' }}>
-                {errors.username}
-              </p>
+              <p className="text-red-500 text-sm mt-1">{errors.username}</p>
             )}
           </div>
 
           {/* Email */}
-          <div style={{ marginBottom: '1.25rem' }}>
-            <label style={{ 
-              display: 'block', 
-              fontSize: '0.9375rem', 
-              fontWeight: '600', 
-              color: '#4a5568', 
-              marginBottom: '0.5rem' 
-            }}>
+          <div>
+            <label className="block text-sm font-semibold text-gray-600 mb-2">
               Email
             </label>
             <input
@@ -196,34 +136,16 @@ export default function Register() {
               placeholder="your@email.com"
               value={formData.email}
               onChange={handleChange}
-              style={{
-                width: '100%',
-                padding: '0.875rem 1rem',
-                border: `2px solid ${errors.email ? '#ef4444' : '#e2e8f0'}`,
-                borderRadius: '10px',
-                fontSize: '1rem',
-                outline: 'none',
-                transition: 'all 0.2s',
-                backgroundColor: '#ffffff',
-                boxSizing: 'border-box'
-              }}
+              className={inputClass("email")}
             />
             {errors.email && (
-              <p style={{ color: '#ef4444', fontSize: '0.875rem', marginTop: '0.375rem' }}>
-                {errors.email}
-              </p>
+              <p className="text-red-500 text-sm mt-1">{errors.email}</p>
             )}
           </div>
 
           {/* Password */}
-          <div style={{ marginBottom: '1.25rem' }}>
-            <label style={{ 
-              display: 'block', 
-              fontSize: '0.9375rem', 
-              fontWeight: '600', 
-              color: '#4a5568', 
-              marginBottom: '0.5rem' 
-            }}>
+          <div>
+            <label className="block text-sm font-semibold text-gray-600 mb-2">
               Mật khẩu
             </label>
             <input
@@ -232,37 +154,20 @@ export default function Register() {
               placeholder="••••••••"
               value={formData.password}
               onChange={handleChange}
-              style={{
-                width: '100%',
-                padding: '0.875rem 1rem',
-                border: `2px solid ${errors.password ? '#ef4444' : '#e2e8f0'}`,
-                borderRadius: '10px',
-                fontSize: '1rem',
-                outline: 'none',
-                transition: 'all 0.2s',
-                backgroundColor: '#ffffff',
-                boxSizing: 'border-box'
-              }}
+              className={inputClass("password")}
             />
-            {errors.password && (
-              <p style={{ color: '#ef4444', fontSize: '0.875rem', marginTop: '0.375rem' }}>
-                {errors.password}
+            {errors.password ? (
+              <p className="text-red-500 text-sm mt-1">{errors.password}</p>
+            ) : (
+              <p className="text-gray-400 text-xs mt-1">
+                Ít nhất 6 ký tự, bao gồm chữ hoa, chữ thường và số
               </p>
             )}
-            <p style={{ color: '#718096', fontSize: '0.8125rem', marginTop: '0.375rem' }}>
-              Mật khẩu phải có ít nhất 6 ký tự, bao gồm chữ hoa, chữ thường và số
-            </p>
           </div>
 
           {/* Confirm Password */}
-          <div style={{ marginBottom: '1.25rem' }}>
-            <label style={{ 
-              display: 'block', 
-              fontSize: '0.9375rem', 
-              fontWeight: '600', 
-              color: '#4a5568', 
-              marginBottom: '0.5rem' 
-            }}>
+          <div>
+            <label className="block text-sm font-semibold text-gray-600 mb-2">
               Xác nhận mật khẩu
             </label>
             <input
@@ -271,81 +176,44 @@ export default function Register() {
               placeholder="••••••••"
               value={formData.confirmPassword}
               onChange={handleChange}
-              style={{
-                width: '100%',
-                padding: '0.875rem 1rem',
-                border: `2px solid ${errors.confirmPassword ? '#ef4444' : '#e2e8f0'}`,
-                borderRadius: '10px',
-                fontSize: '1rem',
-                outline: 'none',
-                transition: 'all 0.2s',
-                backgroundColor: '#ffffff',
-                boxSizing: 'border-box'
-              }}
+              className={inputClass("confirmPassword")}
             />
             {errors.confirmPassword && (
-              <p style={{ color: '#ef4444', fontSize: '0.875rem', marginTop: '0.375rem' }}>
-                {errors.confirmPassword}
-              </p>
+              <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>
             )}
           </div>
 
-          {/* Submit Error */}
+          {/* Submit error */}
           {errors.submit && (
-            <div style={{
-              backgroundColor: '#fee2e2',
-              color: '#dc2626',
-              padding: '0.875rem 1rem',
-              borderRadius: '10px',
-              fontSize: '0.9375rem',
-              marginBottom: '1.25rem',
-              border: '1px solid #fecaca'
-            }}>
+            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl text-sm">
               ⚠️ {errors.submit}
             </div>
           )}
 
-          {/* Register Button */}
+          {/* Submit button */}
           <button
             onClick={handleRegister}
             disabled={isLoading}
-            style={{
-              width: '100%',
-              padding: '0.875rem',
-              borderRadius: '10px',
-              fontSize: '1.0625rem',
-              fontWeight: '600',
-              color: 'white',
-              backgroundColor: isLoading ? '#a5b4fc' : '#6366f1',
-              border: 'none',
-              cursor: isLoading ? 'not-allowed' : 'pointer',
-              transition: 'all 0.2s',
-              boxShadow: isLoading ? 'none' : '0 4px 12px rgba(99, 102, 241, 0.3)'
-            }}
+            className={`w-full py-3.5 rounded-xl text-base font-semibold text-white transition-all
+              ${isLoading
+                ? "bg-indigo-300 cursor-not-allowed"
+                : "bg-indigo-500 hover:bg-indigo-600 hover:-translate-y-0.5 shadow-md hover:shadow-lg shadow-indigo-200"
+              }`}
           >
-            {isLoading ? "⏳ Đang đăng ký..." : "Đăng ký"}
+            {isLoading ? "Đang đăng ký..." : "Đăng ký"}
           </button>
         </div>
 
-        {/* Login Link */}
-        <div style={{ 
-          marginTop: '2rem', 
-          textAlign: 'center', 
-          fontSize: '0.9375rem' 
-        }}>
-          <span style={{ color: '#718096' }}>Đã có tài khoản? </span>
+        {/* Login link */}
+        <p className="mt-8 text-center text-sm text-gray-500">
+          Đã có tài khoản?{" "}
           <span
-            onClick={() => window.location.href = '/login'}
-            style={{ 
-              color: '#6366f1', 
-              fontWeight: '600', 
-              textDecoration: 'none',
-              cursor: 'pointer'
-            }}
+            onClick={() => (window.location.href = "/login")}
+            className="text-indigo-500 font-semibold cursor-pointer hover:underline"
           >
             Đăng nhập ngay
           </span>
-        </div>
+        </p>
       </div>
     </div>
   );

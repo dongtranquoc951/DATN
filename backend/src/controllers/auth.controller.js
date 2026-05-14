@@ -88,19 +88,20 @@ exports.register = async (req, res) => {
 // Đăng nhập
 exports.login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, login, username, password } = req.body;
+    const identifier = (login || email || username || '').trim();
     
-    if (!email || !password) {
+    if (!identifier || !password) {
       return res.status(400).json({ error: 'Vui lòng điền đầy đủ thông tin' });
     }
     
     const [users] = await db.query(
-      'SELECT id, username, email, password_hash, role, is_active FROM users WHERE email = ?',
-      [email]
+      'SELECT id, username, email, password_hash, role, is_active FROM users WHERE email = ? OR username = ?',
+      [identifier, identifier]
     );
     
     if (users.length === 0) {
-      return res.status(401).json({ error: 'Email hoặc mật khẩu không đúng' });
+      return res.status(401).json({ error: 'Email/username hoặc mật khẩu không đúng' });
     }
     
     const user = users[0];
@@ -112,7 +113,7 @@ exports.login = async (req, res) => {
     const isValidPassword = await bcrypt.compare(password, user.password_hash);
     
     if (!isValidPassword) {
-      return res.status(401).json({ error: 'Email hoặc mật khẩu không đúng' });
+      return res.status(401).json({ error: 'Email/username hoặc mật khẩu không đúng' });
     }
     
     const token = jwt.sign(

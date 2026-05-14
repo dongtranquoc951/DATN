@@ -2,21 +2,19 @@ import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { getTokenPayload } from "../utils/auth";
 
-
-
 const NAV_LINKS = [
-  { to: "/learning",   label: "Học tập" },
-  { to: "/community",  label: "Cộng đồng" },
+  { to: "/learning",  label: "Học tập" },
+  { to: "/community", label: "Cộng đồng" },
 ];
 
 const USER_MENU_ITEMS = [
-  { to: "/profile", label: "Thông tin tài khoản" },
-  { to: "/mymap",   label: "Màn chơi của tôi" },
+  { to: "/profile",  label: "Thông tin tài khoản" },
+  { to: "/mymap",    label: "Màn chơi của tôi" },
   { to: "/settings", label: "Cài đặt" },
 ];
 
 export default function Header() {
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdmin, setIsAdmin]           = useState(false);
   const [searchQuery, setSearchQuery]   = useState("");
   const [isLoggedIn, setIsLoggedIn]     = useState(false);
   const [username, setUsername]         = useState("");
@@ -24,15 +22,14 @@ export default function Header() {
   const menuRef  = useRef(null);
   const navigate = useNavigate();
 
-  // Sửa useEffect đọc token
   useEffect(() => {
     const token = localStorage.getItem("token");
     const user  = localStorage.getItem("username");
     if (token && user) {
       setIsLoggedIn(true);
       setUsername(user);
-      const payload = getTokenPayload();         // ← thêm
-      if (payload?.role === 'admin') setIsAdmin(true); // ← thêm
+      const payload = getTokenPayload();
+      if (payload?.role === "admin") setIsAdmin(true);
     }
   }, []);
 
@@ -45,214 +42,130 @@ export default function Header() {
     return () => document.removeEventListener("mousedown", handler);
   }, [showUserMenu]);
 
-  // Sửa handleLogout — reset isAdmin khi logout
   const handleLogout = () => {
     ["token", "username", "userId"].forEach((k) => localStorage.removeItem(k));
     setIsLoggedIn(false);
     setUsername("");
-    setIsAdmin(false);   // ← thêm
+    setIsAdmin(false);
     setShowUserMenu(false);
     navigate("/");
   };
 
   const handleSearch = (e) => {
     e?.preventDefault();
-    if (searchQuery.trim()) navigate(`/community?search=${encodeURIComponent(searchQuery.trim())}`);
+    if (searchQuery.trim())
+      navigate(`/community?search=${encodeURIComponent(searchQuery.trim())}`);
   };
 
   return (
-    <header style={styles.header}>
-      <div style={styles.inner}>
+    <>
+      <style>{`@keyframes slideDown { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} } .dropdown-anim{animation:slideDown 0.2s ease-out}`}</style>
 
-        {/* Logo */}
-        <Link to="/" style={styles.logo}>
-          <span style={{ fontSize: "1.8rem" }}>🎮</span>
-          CodeQuest
-        </Link>
+      <header className="sticky top-0 z-50 shadow-md" style={{ background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" }}>
+        <div className="max-w-6xl mx-auto px-6 py-3.5 flex items-center justify-between gap-6">
 
-        {/* Search */}
-        <form onSubmit={handleSearch} style={styles.searchWrap}>
-          <input
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Tìm kiếm màn chơi, map..."
-            style={styles.searchInput}
-            onFocus={(e)  => (e.target.style.backgroundColor = "white")}
-            onBlur={(e)   => (e.target.style.backgroundColor = "rgba(255,255,255,0.9)")}
-          />
-          <button type="submit" style={styles.searchBtn} aria-label="Tìm kiếm">
-            <svg width="15" height="15" fill="none" stroke="#667eea" strokeWidth="2.5" viewBox="0 0 24 24">
-              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-            </svg>
-          </button>
-        </form>
+          {/* Logo — bên trái */}
+          <Link to="/" className="flex items-center gap-1.5 text-white font-bold text-xl whitespace-nowrap no-underline shrink-0">
+            <span className="text-3xl">🎮</span>
+            CodeQuest
+          </Link>
 
-        {/* Nav */}
-        <nav style={styles.nav}>
-          {NAV_LINKS.map(({ to, label }) => (
-            <Link key={to} to={to} style={styles.navLink}
-              onMouseEnter={(e) => { e.target.style.transform = "translateY(-2px)"; e.target.style.opacity = "0.85"; }}
-              onMouseLeave={(e) => { e.target.style.transform = "translateY(0)";    e.target.style.opacity = "1"; }}
-            >
-              {label}
-            </Link>
-          ))}
+          {/* Search — giữa */}
+          <form onSubmit={handleSearch} className="relative w-full max-w-sm">
+            <input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Tìm kiếm màn chơi, map..."
+              className="w-full py-2 pl-4 pr-10 rounded-full border-none outline-none text-sm bg-white/90 focus:bg-white transition-colors"
+            />
+            <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 bg-transparent border-none cursor-pointer p-0 flex items-center" aria-label="Tìm kiếm">
+              <svg width="15" height="15" fill="none" stroke="#667eea" strokeWidth="2.5" viewBox="0 0 24 24">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+            </button>
+          </form>
 
-          {isLoggedIn ? (
-            <div ref={menuRef} style={{ position: "relative" }}>
-              <button onClick={() => setShowUserMenu((v) => !v)} style={styles.userBtn}
-                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.3)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.2)"; e.currentTarget.style.transform = "translateY(0)"; }}
+          {/* Nav — bên phải */}
+          <nav className="flex items-center gap-5 shrink-0">
+            {NAV_LINKS.map(({ to, label }) => (
+              <Link
+                key={to} to={to}
+                className="text-white no-underline text-sm font-medium hover:-translate-y-0.5 hover:opacity-85 transition-all"
               >
-                <span>👤</span>
-                <span>{username}</span>
-                <span style={{ fontSize: "0.75rem", transform: showUserMenu ? "rotate(180deg)" : "rotate(0)", transition: "transform 0.2s" }}>▼</span>
-              </button>
+                {label}
+              </Link>
+            ))}
 
-              {showUserMenu && (
-                <div style={styles.dropdown}>
-                  {/* User info */}
-                  <div style={styles.dropdownHeader}>
-                    <div style={styles.avatar}>👤</div>
-                    <div>
-                      <div style={{ fontWeight: 600, fontSize: "0.95rem", color: "#1a202c" }}>{username}</div>
-                      <div style={{ fontSize: "0.75rem", color: "#718096" }}>Thành viên</div>
+            {isLoggedIn ? (
+              <div ref={menuRef} className="relative">
+                <button
+                  onClick={() => setShowUserMenu((v) => !v)}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-white/20 border-2 border-white rounded-full text-white text-sm font-semibold cursor-pointer whitespace-nowrap hover:bg-white/30 hover:-translate-y-0.5 transition-all"
+                >
+                  <span>👤</span>
+                  <span>{username}</span>
+                  <span className={`text-xs transition-transform duration-200 ${showUserMenu ? "rotate-180" : "rotate-0"}`}>▼</span>
+                </button>
+
+                {showUserMenu && (
+                  <div className="dropdown-anim absolute top-[calc(100%+0.5rem)] right-0 bg-white rounded-xl shadow-xl min-w-[180px] overflow-hidden">
+                    {/* User info */}
+                    <div className="flex items-center gap-3 px-4 py-3.5 border-b border-gray-100 bg-gray-50">
+                      <div className="w-9 h-9 rounded-full flex items-center justify-center text-xl shrink-0" style={{ background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" }}>
+                        👤
+                      </div>
+                      <div>
+                        <div className="font-semibold text-sm text-gray-800">{username}</div>
+                        <div className="text-xs text-gray-400">Thành viên</div>
+                      </div>
+                    </div>
+
+                    {/* Menu items */}
+                    <div className="py-1">
+                      {USER_MENU_ITEMS.map(({ to, label }) => (
+                        <Link
+                          key={to} to={to}
+                          onClick={() => setShowUserMenu(false)}
+                          className="flex items-center px-4 py-2.5 text-sm text-gray-600 no-underline hover:bg-gray-50 hover:text-indigo-500 transition-colors"
+                        >
+                          {label}
+                        </Link>
+                      ))}
+                      {isAdmin && (
+                        <Link
+                          to="/admin"
+                          onClick={() => setShowUserMenu(false)}
+                          className="flex items-center px-4 py-2.5 text-sm text-gray-600 no-underline hover:bg-gray-50 hover:text-indigo-500 transition-colors"
+                        >
+                          Quản trị
+                        </Link>
+                      )}
+                    </div>
+
+                    {/* Logout */}
+                    <div className="border-t border-gray-100 p-1">
+                      <button
+                        onClick={handleLogout}
+                        className="w-full text-left px-4 py-2.5 text-sm text-red-500 font-medium bg-transparent border-none cursor-pointer rounded-lg hover:bg-red-50 transition-colors"
+                      >
+                        Đăng xuất
+                      </button>
                     </div>
                   </div>
+                )}
+              </div>
+            ) : (
+              <Link
+                to="/login"
+                className="text-white no-underline text-sm font-semibold px-5 py-2 bg-white/20 border-2 border-white rounded-full whitespace-nowrap hover:bg-white hover:text-indigo-500 hover:-translate-y-0.5 transition-all"
+              >
+                Đăng nhập
+              </Link>
+            )}
+          </nav>
 
-                  {/* Links */}
-                  <div style={{ padding: "0.4rem 0" }}>
-                    {USER_MENU_ITEMS.map(({ to, label }) => (
-                      <Link key={to} to={to} onClick={() => setShowUserMenu(false)} style={styles.dropdownItem}
-                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#f7fafc"; e.currentTarget.style.color = "#667eea"; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent";  e.currentTarget.style.color = "#4a5568"; }}
-                      >
-                        {label}
-                      </Link>
-                    ))}
-                  </div>
-                  {isAdmin && (
-                      <Link to="/admin" onClick={() => setShowUserMenu(false)} style={{...styles.dropdownItem}}
-                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#f7fafc"; e.currentTarget.style.color = "#667eea"; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent";  e.currentTarget.style.color = "#4a5568"; }}
-                      >
-                        Quản trị
-                      </Link>
-                  )}
-                  {/* Logout */}
-                  <div style={{ borderTop: "1px solid #e2e8f0", padding: "0.4rem" }}>
-                    <button onClick={handleLogout} style={styles.logoutBtn}
-                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#fff5f5")}
-                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
-                    >
-                      Đăng xuất
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : (
-            <Link to="/login" style={styles.loginBtn}
-              onMouseEnter={(e) => { e.target.style.backgroundColor = "white"; e.target.style.color = "#667eea"; e.target.style.transform = "translateY(-2px)"; }}
-              onMouseLeave={(e) => { e.target.style.backgroundColor = "rgba(255,255,255,0.2)"; e.target.style.color = "white"; e.target.style.transform = "translateY(0)"; }}
-            >
-              Đăng nhập
-            </Link>
-          )}
-        </nav>
-      </div>
-
-      <style>{`@keyframes slideDown { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }`}</style>
-    </header>
+        </div>
+      </header>
+    </>
   );
 }
-
-const styles = {
-  header: {
-    background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-    padding: "0.85rem 2rem",
-    boxShadow: "0 2px 10px rgba(0,0,0,0.15)",
-    position: "sticky", top: 0, zIndex: 1000,
-  },
-  inner: {
-    maxWidth: 1200, margin: "0 auto",
-    display: "flex", alignItems: "center",
-    justifyContent: "space-between", gap: "1.5rem",
-  },
-  logo: {
-    fontSize: "1.4rem", fontWeight: 700, color: "white",
-    textDecoration: "none", display: "flex", alignItems: "center",
-    gap: "0.4rem", whiteSpace: "nowrap",
-  },
-  searchWrap: {
-    flex: 1, maxWidth: 420, position: "relative",
-  },
-  searchInput: {
-    width: "100%", padding: "0.65rem 2.6rem 0.65rem 1rem",
-    borderRadius: 25, border: "none", outline: "none",
-    fontSize: "0.9rem", backgroundColor: "rgba(255,255,255,0.9)",
-    transition: "background-color 0.2s", boxSizing: "border-box",
-    fontFamily: "inherit",
-  },
-  searchBtn: {
-    position: "absolute", right: "0.7rem", top: "50%", transform: "translateY(-50%)",
-    background: "none", border: "none", cursor: "pointer",
-    display: "flex", alignItems: "center", padding: 0,
-  },
-  nav: {
-    display: "flex", alignItems: "center", gap: "1.5rem",
-  },
-  navLink: {
-    color: "white", textDecoration: "none",
-    fontSize: "0.95rem", fontWeight: 500,
-    transition: "all 0.2s", whiteSpace: "nowrap",
-  },
-  userBtn: {
-    display: "flex", alignItems: "center", gap: "0.4rem",
-    padding: "0.55rem 1.1rem",
-    backgroundColor: "rgba(255,255,255,0.2)",
-    border: "2px solid white", borderRadius: 25,
-    color: "white", fontSize: "0.9rem", fontWeight: 600,
-    cursor: "pointer", transition: "all 0.2s", whiteSpace: "nowrap",
-    fontFamily: "inherit",
-  },
-  dropdown: {
-    position: "absolute", top: "calc(100% + 0.5rem)", right: 0,
-    backgroundColor: "white", borderRadius: 12,
-    boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
-    minWidth: 180, overflow: "hidden",
-    animation: "slideDown 0.2s ease-out",
-  },
-  dropdownHeader: {
-    padding: "0.9rem 1rem", borderBottom: "1px solid #e2e8f0",
-    backgroundColor: "#f8fafc", display: "flex", alignItems: "center", gap: "0.75rem",
-  },
-  avatar: {
-    width: 38, height: 38, borderRadius: "50%",
-    background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-    display: "flex", alignItems: "center", justifyContent: "center",
-    fontSize: "1.3rem",
-  },
-  dropdownItem: {
-    display: "flex", alignItems: "center",
-    padding: "0.65rem 1rem",
-    color: "#4a5568", textDecoration: "none",
-    fontSize: "0.9rem", transition: "all 0.15s",
-  },
-  logoutBtn: {
-    width: "100%", textAlign: "left",
-    padding: "0.65rem 1rem",
-    backgroundColor: "transparent", border: "none",
-    color: "#e53e3e", fontSize: "0.9rem", fontWeight: 500,
-    cursor: "pointer", transition: "background 0.15s",
-    borderRadius: 6, fontFamily: "inherit",
-  },
-  loginBtn: {
-    color: "white", textDecoration: "none",
-    fontSize: "0.9rem", fontWeight: 600,
-    padding: "0.55rem 1.3rem",
-    backgroundColor: "rgba(255,255,255,0.2)",
-    borderRadius: 20, border: "2px solid white",
-    transition: "all 0.2s", whiteSpace: "nowrap",
-  },
-};

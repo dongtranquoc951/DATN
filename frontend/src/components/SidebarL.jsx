@@ -1,156 +1,65 @@
 import { Link, useLocation } from "react-router-dom";
 
-export default function Sidebar() {
+export default function SidebarLearning() {
   const location = useLocation();
 
   const menuItems = [
     { path: "/learning", label: "Danh sách Level" },
-    { path: "", label: "Tiến độ" },
-    { path: "", label: "Thành tích" }
+    { path: "",          label: "Tiến độ" },
+    { path: "",          label: "Thành tích" },
   ];
 
   const isActive = (path) => {
-    if (path === "/learning") {
-      return location.pathname === "/learning";
-    }
+    if (path === "/learning") return location.pathname === "/learning";
     return location.pathname === path;
   };
 
   return (
-    <aside style={{
-      width: '250px',
-      background: 'linear-gradient(180deg, #f8f9ff 0%, #ffffff 100%)',
-      borderRight: '1px solid #e2e8f0',
-      padding: '1.5rem 0',
-      height: 'calc(100vh - 80px)',
-      position: 'sticky',
-      top: '80px',
-      overflowY: 'auto'
-    }}>
+    <aside className="w-[250px] border-r border-gray-200 py-6 sticky top-[80px] h-[calc(100vh-80px)] overflow-y-auto shrink-0"
+      style={{ background: "linear-gradient(180deg, #f8f9ff 0%, #ffffff 100%)" }}>
+
       {/* Header */}
-      <div style={{
-        padding: '0 1.5rem',
-        marginBottom: '1.5rem'
-      }}>
-        <h3 style={{
-          fontSize: '1.3rem',
-          fontWeight: '700',
-          color: '#1a202c',
-          margin: '0 0 0.5rem 0',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.5rem'
-        }}>
-          Học tập
-        </h3>
-        <p style={{
-          fontSize: '0.85rem',
-          color: '#718096',
-          margin: 0
-        }}>
-          Bắt đầu hành trình
-        </p>
+      <div className="px-6 mb-6">
+        <h3 className="text-xl font-bold text-gray-900 mb-1">Học tập</h3>
+        <p className="text-sm text-gray-400">Bắt đầu hành trình</p>
       </div>
 
-      {/* Menu Items */}
+      {/* Menu */}
       <nav>
-        <ul style={{
-          listStyle: 'none',
-          padding: 0,
-          margin: 0
-        }}>
-          {menuItems.map((item, index) => (
-            <li key={`menu-${index}`} style={{ marginBottom: '0.5rem' }}>
-              <Link
-                to={item.path}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem',
-                  padding: '0.875rem 1.5rem',
-                  textDecoration: 'none',
-                  fontSize: '1rem',
-                  fontWeight: '500',
-                  color: isActive(item.path) ? '#6366f1' : '#4a5568',
-                  backgroundColor: isActive(item.path) ? '#eef2ff' : 'transparent',
-                  borderLeft: isActive(item.path) ? '4px solid #6366f1' : '4px solid transparent',
-                  transition: 'all 0.2s',
-                  position: 'relative'
-                }}
-                onMouseEnter={(e) => {
-                  if (!isActive(item.path)) {
-                    e.currentTarget.style.backgroundColor = '#f7fafc';
-                    e.currentTarget.style.paddingLeft = '1.75rem';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isActive(item.path)) {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                    e.currentTarget.style.paddingLeft = '1.5rem';
-                  }
-                }}
-              >
-                <span style={{ fontSize: '1.3rem' }}>{item.icon}</span>
-                <span>{item.label}</span>
-              </Link>
-            </li>
-          ))}
+        <ul className="list-none p-0 m-0">
+          {menuItems.map((item, index) => {
+            const active = isActive(item.path);
+            return (
+              <li key={`menu-${index}`} className="mb-1">
+                <Link
+                  to={item.path}
+                  className={`flex items-center gap-3 px-6 py-3.5 no-underline text-sm font-medium transition-all
+                    border-l-4
+                    ${active
+                      ? "text-indigo-500 bg-indigo-50 border-indigo-500"
+                      : "text-gray-600 bg-transparent border-transparent hover:bg-gray-50 hover:pl-7"
+                    }`}
+                >
+                  <span>{item.icon}</span>
+                  <span>{item.label}</span>
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       </nav>
 
       {/* Divider */}
-      <div style={{
-        height: '1px',
-        background: '#e2e8f0',
-        margin: '1.5rem 1rem'
-      }}></div>
+      <div className="h-px bg-gray-200 mx-4 my-6"></div>
 
       {/* Progress Card */}
-      <div style={{
-        margin: '0 1.5rem',
-        padding: '1rem',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        borderRadius: '12px',
-        color: 'white'
-      }}>
-        <div style={{
-          fontSize: '0.85rem',
-          opacity: '0.9',
-          marginBottom: '0.5rem'
-        }}>
-          Level hiện tại
+      <div className="mx-6 p-4 rounded-xl text-white" style={{ background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" }}>
+        <p className="text-xs opacity-90 mb-1">Level hiện tại</p>
+        <p className="text-4xl font-bold">5</p>
+        <div className="mt-3 bg-white/30 rounded-full h-2 overflow-hidden">
+          <div className="bg-white h-full rounded-full w-[65%] transition-all"></div>
         </div>
-        <div style={{
-          fontSize: '2rem',
-          fontWeight: '700'
-        }}>
-          5
-        </div>
-        
-        
-        {/* Progress Bar */}
-        <div style={{
-          marginTop: '1rem',
-          background: 'rgba(255,255,255,0.3)',
-          borderRadius: '10px',
-          height: '8px',
-          overflow: 'hidden'
-        }}>
-          <div style={{
-            background: 'white',
-            width: '65%',
-            height: '100%',
-            borderRadius: '10px',
-            transition: 'width 0.3s'
-          }}></div>
-        </div>
-        <div style={{
-          fontSize: '0.75rem',
-          opacity: '0.9',
-          marginTop: '0.5rem'
-        }}>
-          65% hoàn thành
-        </div>
+        <p className="text-xs opacity-90 mt-1.5">65% hoàn thành</p>
       </div>
     </aside>
   );

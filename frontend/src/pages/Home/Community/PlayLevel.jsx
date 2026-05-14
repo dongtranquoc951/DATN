@@ -1,8 +1,15 @@
 // pages/Home/Community/PlayLevel.jsx
 import { useParams, useNavigate } from "react-router-dom";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { EngineFactory, GameEngine, extractStats } from "@shared/engine";
 import GameGrid from "../../../components/game/GameGrid";
+
+// ── CodeMirror imports ────────────────────────────────────────────────────────
+import CodeMirror from "@uiw/react-codemirror";
+import { javascript } from "@codemirror/lang-javascript";
+import { solarizedLight } from '@uiw/codemirror-theme-solarized';
+import { EditorView } from "@codemirror/view";
+import { autocompletion } from "@codemirror/autocomplete";
 
 const API_BASE_URL      = "http://localhost:5000/api";
 const DEFAULT_CELL_SIZE = 70;
@@ -23,6 +30,51 @@ const getAllEngineBlocks = () => [
   ...GameEngine.COMMANDS.conditions,
   ...GameEngine.COMMANDS.loops,
   ...GameEngine.COMMANDS.ifs,
+];
+
+// ── Build ENGINE_COMPLETIONS từ GameEngine.COMMANDS ──────────────────────────
+const CATEGORY_TYPE = {
+  move:      "function",
+  condition: "function",
+  loop:      "keyword",
+  if:        "keyword",
+};
+
+const ENGINE_COMPLETIONS = getAllEngineBlocks().map(b => ({
+  label:  b.label,
+  type:   CATEGORY_TYPE[b.category] ?? "function",
+  detail: GROUP_CONFIG[b.category]?.label ?? b.category,
+  info:   b.hint ?? undefined,
+  apply:  b.code,   // văn bản thực sự được chèn khi chọn
+}));
+
+function engineAutocomplete(context) {
+  const word = context.matchBefore(/[\w.()]*/);
+  if (!word || (word.from === word.to && !context.explicit)) return null;
+  return {
+    from: word.from,
+    options: ENGINE_COMPLETIONS,
+    validFor: /^[\w.()]*$/,
+  };
+}
+
+// ── CodeMirror custom extensions ─────────────────────────────────────────────
+const cmExtensions = [
+  javascript(),
+  EditorView.lineWrapping,
+  autocompletion({ override: [engineAutocomplete], activateOnTyping: true }),
+  EditorView.theme({
+    "&": { fontSize: "13px", fontFamily: "Consolas, Monaco, 'Courier New', monospace" },
+    ".cm-content": { padding: "14px 0", minHeight: "320px" },
+    ".cm-gutters": { borderRight: "1px solid #2a2d3a", minWidth: "44px" },
+    ".cm-lineNumbers .cm-gutterElement": { padding: "0 10px 0 8px", minWidth: "28px", textAlign: "right" },
+    ".cm-scroller": { lineHeight: "1.7" },
+    ".cm-activeLine": { backgroundColor: "rgba(255,255,255,0.04)" },
+    ".cm-activeLineGutter": { backgroundColor: "rgba(255,255,255,0.06)" },
+    // Tooltip autocomplete styling
+    ".cm-tooltip-autocomplete": { borderRadius: "8px", border: "1px solid #3a3f4b", overflow: "hidden" },
+    ".cm-tooltip-autocomplete ul li[aria-selected]": { background: "#534ab7 !important" },
+  }),
 ];
 
 // ── Block Item ────────────────────────────────────────────────────────────────
@@ -264,37 +316,30 @@ export default function PlayLevel() {
   const openModal  = (type, extra = {}) => setModal({ open: true, type, moves: 0, failReason: "", errorMsg: "", ...extra });
   const closeModal = () => setModal(m => ({ ...m, open: false }));
 
-  const engineRef   = useRef(null);
-  const textareaRef = useRef(null);
+  const engineRef     = useRef(null);
+  const editorViewRef = useRef(null);
 
-  // ── Insert block tại vị trí con trỏ ──────────────────────────────────────
-  const insertAtCursor = (snippet) => {
-    const ta = textareaRef.current;
-    if (!ta) { setCode(prev => prev + snippet); return; }
-
-    const start  = ta.selectionStart ?? code.length;
-    const end    = ta.selectionEnd   ?? code.length;
-    const before = code.slice(0, start);
-    const after  = code.slice(end);
-
-    const lastNewline = before.lastIndexOf("\n");
-    const currentLine = before.slice(lastNewline + 1);
-    const indent      = currentLine.match(/^(\s*)/)[1];
-
+  // ── Insert block tại vị trí con trỏ ─────────────────────────────────────
+  const insertAtCursor = useCallback((snippet) => {
+    const view = editorViewRef.current;
+    if (!view) {
+      setCode(prev => prev + snippet);
+      return;
+    }
+    const { state } = view;
+    const { from, to } = state.selection.main;
+    const line     = state.doc.lineAt(from);
+    const indent   = line.text.match(/^(\s*)/)[1];
     const indented = snippet
       .split("\n")
-      .map((line, i) => (i === 0 ? line : indent + line))
+      .map((l, i) => (i === 0 ? l : indent + l))
       .join("\n");
-
-    const newCode = before + indented + after;
-    setCode(newCode);
-
-    const newPos = start + indented.length;
-    requestAnimationFrame(() => {
-      ta.focus();
-      ta.setSelectionRange(newPos, newPos);
+    view.dispatch({
+      changes: { from, to, insert: indented },
+      selection: { anchor: from + indented.length },
     });
-  };
+    view.focus();
+  }, []);
 
   const calculateCellSize = () => {
     if (!gameState) return DEFAULT_CELL_SIZE;
@@ -394,10 +439,18 @@ export default function PlayLevel() {
   const handleReset = () => {
     setCode(mapData?.initial_code || ""); setMessage("");
     if (mapData) {
-      const gd   = typeof mapData.grid_data === "string" ? JSON.parse(mapData.grid_data) : mapData.grid_data;
+      const gd = typeof mapData.grid_data === "string" ? JSON.parse(mapData.grid_data) : mapData.grid_data;
       setupEngine(gd);
     }
   };
+
+  // ── Drag-drop vào CodeMirror ──────────────────────────────────────────────
+  const handleEditorDrop = useCallback((e) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    const snippet = e.dataTransfer.getData("text/plain");
+    if (snippet) insertAtCursor(snippet);
+  }, [insertAtCursor]);
 
   const sleep = (ms) => new Promise(r => setTimeout(r, ms));
   const formatRating = (r) => { const n = Number(r); return isNaN(n) ? "0.0" : n.toFixed(1); };
@@ -428,7 +481,10 @@ export default function PlayLevel() {
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div style={{ minHeight: "100vh", background: "#f0f4ff" }}>
-      <style>{`@keyframes spin { to { transform:rotate(360deg) } } @keyframes blink { 0%,100%{opacity:.5} 50%{opacity:1} }`}</style>
+      <style>{`
+        @keyframes spin  { to { transform:rotate(360deg) } }
+        @keyframes blink { 0%,100%{opacity:.5} 50%{opacity:1} }
+      `}</style>
 
       <GameResultModal
         open={modal.open} type={modal.type} moves={modal.moves}
@@ -457,13 +513,13 @@ export default function PlayLevel() {
           {/* Meta chips */}
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
             <span style={{ fontSize: 11, padding: "3px 10px", borderRadius: 99, background: "#eeedfe", color: "#534ab7", fontWeight: 500 }}>
-              👤 {mapData?.creator_username}
+             {mapData?.creator_username}
             </span>
             <span style={{ fontSize: 11, padding: "3px 10px", borderRadius: 99, background: "#f0f0f8", color: "#8888aa", fontWeight: 500 }}>
-              🔑 {mapData?.map_code}
+             {mapData?.map_code}
             </span>
             <span style={{ fontSize: 11, padding: "3px 10px", borderRadius: 99, background: "#e1f5ee", color: "#0f6e56", fontWeight: 500 }}>
-              🎮 {mapData?.play_count || 0} lượt
+             {mapData?.play_count || 0} lượt
             </span>
             {mapData?.average_rating > 0 && (
               <span style={{ fontSize: 11, padding: "3px 10px", borderRadius: 99, background: "#faeeda", color: "#854f0b", fontWeight: 500 }}>
@@ -537,51 +593,119 @@ export default function PlayLevel() {
 
           {/* Code editor */}
           <div style={{
-            background: "white", borderRadius: 16,
-            border: `1.5px solid ${isDragOver ? "#7f77dd" : "#e8eaf0"}`,
-            boxShadow: isDragOver ? "0 0 0 3px #eeedfe" : "none",
-            overflow: "hidden", display: "flex", flexDirection: "column",
+            background: "#282c34",
+            borderRadius: 16,
+            border: `1.5px solid ${isDragOver ? "#7f77dd" : "#3a3f4b"}`,
+            boxShadow: isDragOver ? "0 0 0 3px #eeedfe44" : "none",
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
             transition: "border-color .15s, box-shadow .15s",
           }}>
-            <div style={{ padding: "13px 18px", borderBottom: "0.5px solid #f0f0f8", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div style={{ fontSize: 12, fontWeight: 500, color: "#8888aa", textTransform: "uppercase", letterSpacing: ".05em" }}>Code Editor</div>
-              {isDragOver && <div style={{ fontSize: 10, color: "#7f77dd", fontWeight: 500, animation: "blink .6s ease infinite" }}>↓ Thả để chèn</div>}
+            {/* Editor header */}
+            <div style={{
+              padding: "11px 16px",
+              borderBottom: "1px solid #3a3f4b",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              background: "#ffffff",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <div style={{ width: 11, height: 11, borderRadius: "50%", background: "#ff5f57" }} />
+                  <div style={{ width: 11, height: 11, borderRadius: "50%", background: "#febc2e" }} />
+                  <div style={{ width: 11, height: 11, borderRadius: "50%", background: "#28c840" }} />
+                </div>
+                <div style={{ fontSize: 11, color: "#6b7280", fontFamily: "Consolas, monospace", letterSpacing: ".03em" }}>
+                  Editor
+                </div>
+              </div>
+              {isDragOver && (
+                <div style={{ fontSize: 10, color: "#7f77dd", fontWeight: 500, animation: "blink .6s ease infinite" }}>
+                  ↓ Thả để chèn
+                </div>
+              )}
             </div>
 
-            <textarea
-              ref={textareaRef}
-              value={code}
-              onChange={e => setCode(e.target.value)}
-              disabled={isRunning}
-              placeholder={"// Viết code của bạn ở đây\n// Các lệnh: moveRight(), moveLeft(), moveUp(), moveDown()"}
+            {/* CodeMirror editor */}
+            <div
               onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; setIsDragOver(true); }}
               onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget)) setIsDragOver(false); }}
-              onDrop={e => {
-                e.preventDefault(); setIsDragOver(false);
-                const snippet = e.dataTransfer.getData("text/plain");
-                if (snippet) insertAtCursor(snippet);
-              }}
-              style={{
-                flex: 1, padding: "16px 18px", border: "none", outline: "none", resize: "none",
-                fontSize: 13, fontFamily: "Consolas, Monaco, 'Courier New', monospace",
-                lineHeight: 1.7, color: "#1a1a2e",
-                background: isRunning ? "#fafafe" : isDragOver ? "#f8f7ff" : "white",
-                minHeight: 340, transition: "background .15s",
-              }}
-            />
+              onDrop={handleEditorDrop}
+              style={{ flex: 1, opacity: isRunning ? 0.6 : 1, transition: "opacity .2s", pointerEvents: isRunning ? "none" : "auto" }}
+            >
+              <CodeMirror
+                value={code}
+                onChange={setCode}
+                extensions={cmExtensions}
+                editable={!isRunning}
+                onCreateEditor={(view) => { editorViewRef.current = view; }}
+                basicSetup={{
+                  lineNumbers:               true,
+                  highlightActiveLineGutter: true,
+                  highlightSpecialChars:     true,
+                  foldGutter:                true,
+                  drawSelection:             true,
+                  dropCursor:                true,
+                  allowMultipleSelections:   false,
+                  indentOnInput:             true,
+                  syntaxHighlighting:        true,
+                  bracketMatching:           true,
+                  closeBrackets:             true,
+                  autocompletion:            false, // dùng extension riêng ở trên
+                  rectangularSelection:      false,
+                  crosshairCursor:           false,
+                  highlightActiveLine:       true,
+                  highlightSelectionMatches: true,
+                  closeBracketsKeymap:       true,
+                  defaultKeymap:             true,
+                  searchKeymap:              false,
+                  historyKeymap:             true,
+                  foldKeymap:                false,
+                  completionKeymap:          true,  // giữ Ctrl+Space để trigger thủ công
+                  lintKeymap:                false,
+                }}
+              />
+            </div>
 
-            <div style={{ padding: "13px 18px", borderTop: "0.5px solid #f0f0f8", display: "flex", gap: 8 }}>
+            {/* Action buttons */}
+            <div style={{
+              padding: "12px 14px",
+              borderTop: "1px solid #3a3f4b",
+              display: "flex",
+              gap: 8,
+              background: "#ffffff",
+            }}>
               <button
-                onClick={handleRun} disabled={isRunning}
-                style={{ flex: 1, padding: "11px 0", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 500, cursor: isRunning ? "not-allowed" : "pointer", fontFamily: "inherit", transition: "opacity .15s", background: isRunning ? "#D3D1C7" : "#1D9E75", color: isRunning ? "#888780" : "white" }}
+                onClick={handleRun}
+                disabled={isRunning}
+                style={{
+                  flex: 1, padding: "10px 0",
+                  border: "none", borderRadius: 9,
+                  fontSize: 13, fontWeight: 500,
+                  cursor: isRunning ? "not-allowed" : "pointer",
+                  fontFamily: "inherit", transition: "opacity .15s",
+                  background: isRunning ? "#3a3f4b" : "#1D9E75",
+                  color: isRunning ? "#6b7280" : "white",
+                }}
                 onMouseEnter={e => { if (!isRunning) e.currentTarget.style.opacity = ".85"; }}
                 onMouseLeave={e => { e.currentTarget.style.opacity = "1"; }}
               >
-                {isRunning ? "⏳ Đang chạy..." : "▶ Chạy code"}
+                {isRunning ? "Đang chạy..." : "Run"}
               </button>
               <button
-                onClick={handleReset} disabled={isRunning}
-                style={{ padding: "11px 20px", background: "#f0f0f8", color: "#534ab7", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 500, cursor: isRunning ? "not-allowed" : "pointer", fontFamily: "inherit", opacity: isRunning ? .5 : 1, transition: "opacity .15s" }}
+                onClick={handleReset}
+                disabled={isRunning}
+                style={{
+                  padding: "10px 18px",
+                  background: "#1D9E75", color: "#fcfdff",
+                  border: "1px solid #3a3f4b",
+                  borderRadius: 9, fontSize: 13, fontWeight: 500,
+                  cursor: isRunning ? "not-allowed" : "pointer",
+                  fontFamily: "inherit",
+                  opacity: isRunning ? .5 : 1, transition: "opacity .15s",
+                }}
                 onMouseEnter={e => { if (!isRunning) e.currentTarget.style.opacity = ".75"; }}
                 onMouseLeave={e => { e.currentTarget.style.opacity = isRunning ? ".5" : "1"; }}
               >
