@@ -62,7 +62,7 @@ export default function Login() {
       window.location.href = '/learning';
       
     } catch (err) {
-      setError(err.message || "Email hoặc mật khẩu không đúng");
+      setError(err.message || "Email/username hoặc mật khẩu không đúng");
     } finally {
       setIsLoading(false);
     }
