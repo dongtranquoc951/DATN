@@ -102,7 +102,6 @@ export default function Header() {
                   onClick={() => setShowUserMenu((v) => !v)}
                   className="flex items-center gap-1.5 px-4 py-2 bg-white/20 border-2 border-white rounded-full text-white text-sm font-semibold cursor-pointer whitespace-nowrap hover:bg-white/30 hover:-translate-y-0.5 transition-all"
                 >
-                  <span>👤</span>
                   <span>{username}</span>
                   <span className={`text-xs transition-transform duration-200 ${showUserMenu ? "rotate-180" : "rotate-0"}`}>▼</span>
                 </button>
@@ -112,7 +111,6 @@ export default function Header() {
                     {/* User info */}
                     <div className="flex items-center gap-3 px-4 py-3.5 border-b border-gray-100 bg-gray-50">
                       <div className="w-9 h-9 rounded-full flex items-center justify-center text-xl shrink-0" style={{ background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" }}>
-                        👤
                       </div>
                       <div>
                         <div className="font-semibold text-sm text-gray-800">{username}</div>
