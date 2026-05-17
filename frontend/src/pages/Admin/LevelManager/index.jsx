@@ -186,6 +186,31 @@ function GridPreview({ gridData }) {
 }
 
 function LevelDetailContent({ level }) {
+  const parseGridData = () => {
+    try {
+      let gData = typeof level.grid_data === "string" ? JSON.parse(level.grid_data) : level.grid_data;
+      if (typeof gData === "string") gData = JSON.parse(gData);
+      return gData || {};
+    } catch (e) {
+      console.error("Lá»—i parse dá»¯ liá»‡u:", e);
+      return {};
+    }
+  };
+
+  const normalizeList = (value) => {
+    if (!value) return [];
+    if (Array.isArray(value)) return value;
+    if (typeof value === "string") {
+      try {
+        const parsed = JSON.parse(value);
+        if (Array.isArray(parsed)) return parsed;
+      } catch {
+        return value.split(",").map((item) => item.trim()).filter(Boolean);
+      }
+    }
+    return [];
+  };
+
   const getEngineData = () => {
     try {
       let gData = typeof level.grid_data === "string" ? JSON.parse(level.grid_data) : level.grid_data;
@@ -197,7 +222,13 @@ function LevelDetailContent({ level }) {
     }
   };
 
+  const gridConfig = parseGridData();
   const engine = getEngineData();
+  const concepts = normalizeList(gridConfig.concepts || level.concepts);
+  const requiredCommands = normalizeList(
+    gridConfig.required_commands || gridConfig.requiredCommands || level.required_commands
+  );
+  const allowedCommands = normalizeList(gridConfig.allowed_commands || level.allowed_commands);
   const displayItems = [];
   Object.keys(engine).forEach((key) => {
     if (Array.isArray(engine[key])) {
@@ -240,6 +271,38 @@ function LevelDetailContent({ level }) {
           ))}
         </div>
       )}
+
+      {/* Yêu cầu bài học */}
+      <div className="mb-4">
+        <div className="text-[13px] font-semibold mb-2.5">Yêu cầu bài học</div>
+        <div className="grid grid-cols-3 gap-2.5">
+          {[
+            { label: "Concepts", items: concepts, empty: "Chưa cấu hình" },
+            { label: "Lệnh bắt buộc", items: requiredCommands, empty: "Không bắt buộc" },
+            { label: "Lệnh được dùng", items: allowedCommands, empty: "Tất cả" },
+          ].map((group) => (
+            <div key={group.label} className="bg-gray-50 rounded-md px-3.5 py-3 border border-gray-100">
+              <div className="text-[10.5px] font-semibold tracking-widest uppercase text-gray-400 mb-2">
+                {group.label}
+              </div>
+              {group.items.length ? (
+                <div className="flex flex-wrap gap-1.5">
+                  {group.items.map((item) => (
+                    <span
+                      key={item}
+                      className="inline-flex items-center rounded-md bg-blue-50 px-2.5 py-1 text-[11.5px] font-semibold text-blue-600 border border-blue-100"
+                    >
+                      {item}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <span className="text-[12.5px] text-gray-400">{group.empty}</span>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
 
       {/* Engine Data */}
       <div className="mb-4">

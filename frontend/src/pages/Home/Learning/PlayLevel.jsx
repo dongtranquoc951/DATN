@@ -2,6 +2,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { EngineFactory, generateGridData, extractStats } from "@shared/engine";
 import { GameEngine } from "@shared/engine/GameEngine"; // import để dùng COMMANDS
+import { getLevelRequirements, validateRequiredConcepts } from "@shared/engine/codeRequirements";
 import GameGrid from "../../../components/game/GameGrid";
 import CodeMirror from "@uiw/react-codemirror";
 import { javascript } from "@codemirror/lang-javascript";
@@ -342,9 +343,21 @@ export default function PlayLevel() {
       if (response.status === 404) { navigate("/learning"); return; }
       if (!response.ok) throw new Error("Không thể tải level");
       const data = await response.json();
-      setLevelData(data.level);
-      setCode(data.level.initial_code || "// Viết code hoặc kéo block từ bảng bên cạnh\n");
       const gridConfig = typeof data.level.grid_data === "string" ? JSON.parse(data.level.grid_data) : data.level.grid_data;
+      const concepts = gridConfig.concepts ?? data.level.concepts ?? [];
+      const conceptCommands = [
+        ...(concepts.some((item) => ["if", "else", "else_if", "multi_branch", "two_branches", "nested"].includes(item)) ? ["if"] : []),
+        ...(concepts.includes("while") ? ["while"] : []),
+        ...(concepts.includes("for") ? ["for"] : []),
+      ];
+      const allowedCommands = data.level.allowed_commands ?? gridConfig.allowed_commands;
+      setLevelData({
+        ...data.level,
+        allowed_commands: allowedCommands ? [...new Set([...allowedCommands, ...conceptCommands])] : undefined,
+        concepts: data.level.concepts ?? gridConfig.concepts,
+        required_commands: data.level.required_commands ?? gridConfig.required_commands ?? gridConfig.requiredCommands,
+      });
+      setCode(data.level.initial_code || "// Viết code hoặc kéo block từ bảng bên cạnh\n");
       if (!gridConfig?.player || !gridConfig?.target || !gridConfig?.rows || !gridConfig?.cols)
         throw new Error(`Level ${data.level.level_number} chưa có dữ liệu grid hợp lệ`);
       setupEngine(gridConfig);
@@ -357,6 +370,13 @@ export default function PlayLevel() {
     setIsRunning(true); setMessage("🎮 Đang chạy code..."); closeModal();
     try {
       const gridConfig = typeof levelData.grid_data === "string" ? JSON.parse(levelData.grid_data) : levelData.grid_data;
+      const requirements = getLevelRequirements(levelData, gridConfig);
+      const requirementResult = validateRequiredConcepts(code, requirements);
+      if (!requirementResult.valid) {
+        openModal("error", { errorMsg: requirementResult.message });
+        setMessage("");
+        return;
+      }
       await sleep(300);
       const engine = setupEngine(gridConfig);
       const isWin  = await engine.executeCode(code);

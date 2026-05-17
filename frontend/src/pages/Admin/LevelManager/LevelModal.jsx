@@ -5,6 +5,8 @@ const EMPTY_FORM = {
   level_number: "",
   description: "",
   initial_code: "",
+  concepts: "",
+  required_commands: "",
   is_published: false,
   grid_rows: 5,
   grid_cols: 5,
@@ -32,6 +34,13 @@ const PARAM_REF = [
 ];
 
 const typeColor = { number:"text-blue-600 bg-blue-50", boolean:"text-violet-600 bg-violet-50", string:"text-cyan-600 bg-cyan-50", entity:"text-emerald-600 bg-emerald-50" };
+
+const listToText = (value) => Array.isArray(value) ? value.join(", ") : (value || "");
+const textToList = (value) =>
+  value
+    .split(",")
+    .map(item => item.trim())
+    .filter(Boolean);
 
 // ─── Small reusable components ────────────────────────────────────────────────
 
@@ -170,6 +179,8 @@ function AddLevelModal({ open, onClose, onSave, saving, initialData }) {
           level_number: initialData.level_number || "",
           description: initialData.description || "",
           initial_code: initialData.initial_code || "",
+          concepts: listToText(grid.concepts),
+          required_commands: listToText(grid.required_commands || grid.requiredCommands),
           is_published: initialData.is_published || false,
           grid_rows: grid.rows || 5,
           grid_cols: grid.cols || 5,
@@ -277,6 +288,8 @@ function AddLevelModal({ open, onClose, onSave, saving, initialData }) {
         player: { x: Number(form.player_x), y: Number(form.player_y) },
         target: { x: Number(form.target_x), y: Number(form.target_y) },
         obstacles, entities: entityData,
+        concepts: textToList(form.concepts),
+        required_commands: textToList(form.required_commands),
         engine: { ...engineParams, ...engineEntityGroups },
       }),
     });
@@ -326,6 +339,31 @@ function AddLevelModal({ open, onClose, onSave, saving, initialData }) {
       <div className="mb-4">
         <FieldLabel>Code khởi đầu</FieldLabel>
         <TextareaInput value={form.initial_code} onChange={set("initial_code")} placeholder="# Code mẫu cho học viên" rows={5} mono />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <div>
+          <FieldLabel>Concepts</FieldLabel>
+          <TextInput
+            value={form.concepts}
+            onChange={set("concepts")}
+            placeholder="VD: if, else, while"
+          />
+          <div className="text-[11px] text-gray-400 mt-1">
+            Tự nhận diện bài học và bật block phù hợp.
+          </div>
+        </div>
+        <div>
+          <FieldLabel>Lệnh bắt buộc</FieldLabel>
+          <TextInput
+            value={form.required_commands}
+            onChange={set("required_commands")}
+            placeholder="VD: if, for"
+          />
+          <div className="text-[11px] text-gray-400 mt-1">
+            Ép chính xác cấu trúc phải xuất hiện khi chạy.
+          </div>
+        </div>
       </div>
 
       {/* ── Cấu hình lưới ── */}
