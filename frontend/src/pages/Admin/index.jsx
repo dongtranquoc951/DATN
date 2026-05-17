@@ -60,7 +60,7 @@ export default function AdminLayout() {
             {!collapsed && (
               <div>
                 <div style={{ fontSize: 15, fontWeight: 600, letterSpacing: "-0.02em", color: "#1A1A18" }}>
-                  CodingGame
+                CodeQuest
                 </div>
                 <div style={{ fontSize: 11, color: "#A8A89E", fontFamily: "'DM Mono', monospace" }}>
                   admin panel
