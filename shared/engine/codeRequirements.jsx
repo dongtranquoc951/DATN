@@ -25,7 +25,18 @@ const REQUIREMENT_RULES = [
     label: "for",
     pattern: /\bfor\s*\(/,
   },
+  {
+    names: ["loop"],
+    label: "for hoặc while",
+    pattern: /\b(?:for|while)\s*\(/,
+  },
 ];
+
+const normalizeText = (value) =>
+  String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
 
 const normalizeList = (value) => {
   if (!value) return [];
@@ -62,4 +73,28 @@ export const validateRequiredConcepts = (code, requirements) => {
     missing,
     message: `Level này yêu cầu dùng cấu trúc: ${missing.join(", ")}. Hãy dùng đúng kiến thức của bài thay vì chỉ viết các lệnh di chuyển liên tiếp.`,
   };
+};
+
+export const getCategoryRequirements = (categories = []) => {
+  const requirements = [];
+
+  categories.forEach((category) => {
+    const text = normalizeText(`${category?.name || ""} ${category?.description || ""}`);
+
+    if (/\bif\b/.test(text) || text.includes("dieu kien") || text.includes("condition")) {
+      requirements.push("if");
+    }
+    if (/\belse\b/.test(text)) {
+      requirements.push("else");
+    }
+    if (/\bwhile\b/.test(text)) {
+      requirements.push("while");
+    } else if (/\bfor\b/.test(text)) {
+      requirements.push("for");
+    } else if (text.includes("vong lap") || /\bloop\b/.test(text)) {
+      requirements.push("loop");
+    }
+  });
+
+  return [...new Set(requirements)];
 };

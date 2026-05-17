@@ -2,6 +2,7 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { EngineFactory, GameEngine, extractStats } from "@shared/engine";
+import { getCategoryRequirements, getLevelRequirements, validateRequiredConcepts } from "@shared/engine/codeRequirements";
 import GameGrid from "../../../components/game/GameGrid";
 
 // ── CodeMirror imports ────────────────────────────────────────────────────────
@@ -396,6 +397,16 @@ export default function PlayLevel() {
     setIsRunning(true); setMessage("🎮 Đang chạy code..."); closeModal(); setRated(false); setRatedValue(0);
     try {
       const gd   = typeof mapData.grid_data === "string" ? JSON.parse(mapData.grid_data) : mapData.grid_data;
+      const requirements = [
+        ...getLevelRequirements(mapData, gd),
+        ...getCategoryRequirements(mapData.categories),
+      ];
+      const requirementResult = validateRequiredConcepts(code, [...new Set(requirements)]);
+      if (!requirementResult.valid) {
+        openModal("error", { errorMsg: requirementResult.message });
+        setMessage("");
+        return;
+      }
       await sleep(300);
       const engine = setupEngine(gd);
       const isWin = await engine.executeCode(code);
