@@ -480,6 +480,35 @@ exports.getMapRatings = async (req, res) => {
   }
 };
 
+// Lay bang xep hang theo so community map da hoan thanh
+exports.getLeaderboard = async (req, res) => {
+  try {
+    const limit = Math.max(1, Math.min(Number(req.query.limit) || 5, 20));
+
+    const [leaderboard] = await db.query(
+      `SELECT
+         u.id,
+         u.username,
+         u.full_name,
+         u.avatar_url,
+         COUNT(DISTINCT ch.map_id) AS completed_maps
+       FROM community_history ch
+       JOIN users u ON u.id = ch.user_id
+       WHERE ch.is_completed = TRUE
+         AND u.is_active = TRUE
+       GROUP BY u.id, u.username, u.full_name, u.avatar_url
+       ORDER BY completed_maps DESC, u.username ASC
+       LIMIT ?`,
+      [limit]
+    );
+
+    res.json({ success: true, leaderboard });
+  } catch (error) {
+    console.error('Get community leaderboard error:', error);
+    res.status(500).json({ success: false, message: 'Loi server' });
+  }
+};
+
 // GET /api/community/history
 const getUserCommunityHistory = async (req, res) => {
   try {

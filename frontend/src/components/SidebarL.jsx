@@ -51,16 +51,6 @@ export default function SidebarLearning() {
 
       {/* Divider */}
       <div className="h-px bg-gray-200 mx-4 my-6"></div>
-
-      {/* Progress Card */}
-      <div className="mx-6 p-4 rounded-xl text-white" style={{ background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" }}>
-        <p className="text-xs opacity-90 mb-1">Level hiện tại</p>
-        <p className="text-4xl font-bold">5</p>
-        <div className="mt-3 bg-white/30 rounded-full h-2 overflow-hidden">
-          <div className="bg-white h-full rounded-full w-[65%] transition-all"></div>
-        </div>
-        <p className="text-xs opacity-90 mt-1.5">65% hoàn thành</p>
-      </div>
     </aside>
   );
 }

@@ -6,6 +6,7 @@ const { authMiddleware } = require('../middleware/auth');
 
 // Public routes
 router.get('/maps',                communityController.getAllMaps);
+router.get('/leaderboard',         communityController.getLeaderboard);
 router.get('/maps/code/:map_code', communityController.getMapByCode);
 router.get('/maps/:id',            communityController.getMapById);
 router.get('/maps/:id/ratings',    communityController.getMapRatings);
